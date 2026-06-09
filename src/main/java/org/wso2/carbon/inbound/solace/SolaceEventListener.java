@@ -29,7 +29,6 @@ import com.solacesystems.jcsmp.JCSMPFactory;
 import com.solacesystems.jcsmp.JCSMPProperties;
 import com.solacesystems.jcsmp.JCSMPSession;
 import com.solacesystems.jcsmp.Queue;
-import com.solacesystems.jcsmp.Topic;
 import com.solacesystems.jcsmp.XMLMessage;
 import com.solacesystems.jcsmp.XMLMessageConsumer;
 import com.solacesystems.jcsmp.XMLMessageListener;
@@ -42,6 +41,8 @@ import org.apache.synapse.core.SynapseEnvironment;
 import org.wso2.carbon.inbound.endpoint.protocol.PollingConstants;
 import org.wso2.carbon.inbound.endpoint.protocol.generic.GenericEventBasedConsumer;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import static org.wso2.carbon.inbound.solace.SolaceUtils.getBooleanProperty;
@@ -130,6 +131,15 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
     // Ingestion Configurations
     private final String contentType;
 
+    /**
+     * @param properties
+     * @param name
+     * @param synapseEnvironment
+     * @param injectingSeq
+     * @param onErrorSeq
+     * @param coordination
+     * @param sequential
+     */
     public SolaceEventListener(Properties properties, String name,
                                SynapseEnvironment synapseEnvironment,
                                String injectingSeq, String onErrorSeq,
@@ -228,6 +238,21 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
                 BooleanUtils.toBooleanObject(
                         properties.getProperty(PollingConstants.INBOUND_COORDINATION)),
                 coordination);
+
+        // Client-acknowledgement settles each message based on the mediation outcome, which is
+        // only known synchronously. Under async injection (sequential=false) the listener's
+        // post-injection ack would run before mediation, then a connector operation acknowledgeMessage /
+        // nackMessage could settle the same message from a worker thread. Solace treats a second
+        // ack as a harmless no-op, but an ack followed by a nack is not: the message is already
+        // removed as consumed, so the intended FAILED/REJECTED (redelivery / DMQ routing) outcome
+        // is silently lost. Force sequential processing so the settle decision is always made from
+        // a completed mediation. (Matches other MI inbounds — e.g. Kafka — which also pin
+        // sequential for manual-commit/ack modes.)
+        if (!autoAck && !this.sequential) {
+            log.warn("SolaceListener [" + name + "]: autoAck=false requires sequential processing; "
+                    + "overriding sequential=true to prevent an ack-then-nack double-settle race.");
+            this.sequential = true;
+        }
     }
 
     @Override
@@ -261,6 +286,10 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
             log.error("Failed to initialise SolaceListener [" + name + "]", e);
             throw new SynapseException(
                     "Failed to initialise SolaceListener [" + name + "]", e);
+        } catch (SynapseException e) {
+            cleanupSessionQuietly();
+            log.error("Failed to initialise SolaceListener [" + name + "]", e);
+            throw e;
         }
     }
 
@@ -303,8 +332,10 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
     }
 
     /**
-     * Closes the session without touching isConnected — used when listen() fails
-     * after session.connect() but before the listener is fully wired.
+     * Tears down a partially initialised listener — closes the session if open and
+     * resets all lifecycle state (isConnected, session, flowReceiver, consumer).
+     * Used when listen() fails after session.connect() but before the listener is
+     * fully wired.
      */
     private void cleanupSessionQuietly() {
         try {
@@ -343,16 +374,25 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
     private void initializeTopicConsumer() throws JCSMPException {
         validateRequiredParam(destinationName, SolaceInboundConstants.DESTINATION_NAME,
                 SolaceInboundConstants.DESTINATION_TYPE_TOPIC);
-        xmlMessageConsumer = session.getMessageConsumer(this);
 
-        String[] topicStrings = destinationName.split(",");
-        for (String topicStr : topicStrings) {
+        List<String> topics = new ArrayList<>();
+        for (String topicStr : destinationName.split(",")) {
             String trimmed = topicStr.trim();
             if (!trimmed.isEmpty()) {
-                Topic topic = JCSMPFactory.onlyInstance().createTopic(trimmed);
-                session.addSubscription(topic);
-                log.info("SolaceListener [" + name + "] subscribed to topic: " + trimmed);
+                topics.add(trimmed);
             }
+        }
+        if (topics.isEmpty()) {
+            throw new SynapseException("Parameter '" + SolaceInboundConstants.DESTINATION_NAME
+                    + "' for " + SolaceInboundConstants.DESTINATION_TYPE_TOPIC
+                    + " must contain at least one non-empty topic.");
+        }
+
+        xmlMessageConsumer = session.getMessageConsumer(this);
+
+        for (String topic : topics) {
+            session.addSubscription(JCSMPFactory.onlyInstance().createTopic(topic));
+            log.info("SolaceListener [" + name + "] subscribed to topic: " + topic);
         }
 
         xmlMessageConsumer.start();
@@ -431,7 +471,7 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
 
         props.setProperty(JCSMPProperties.GENERATE_RCV_TIMESTAMPS, generateReceiveTimestamps);
 
-        // SSL/TLS
+        // SSL/TLS — custom truststore (optional; falls back to JVM default when unset)
         if (sslTrustStorePath != null) {
             props.setProperty(JCSMPProperties.SSL_TRUST_STORE, sslTrustStorePath);
             if (sslTrustStorePassword != null) {
@@ -442,11 +482,11 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
                 props.setProperty(JCSMPProperties.SSL_TRUST_STORE_FORMAT,
                         sslTrustStoreFormat);
             }
-            props.setProperty(JCSMPProperties.SSL_VALIDATE_CERTIFICATE,
-                    sslValidateCertificate);
-            props.setProperty(JCSMPProperties.SSL_VALIDATE_CERTIFICATE_DATE,
-                    sslValidateCertificateDate);
         }
+
+        // Only affect TLS connections.
+        props.setProperty(JCSMPProperties.SSL_VALIDATE_CERTIFICATE, sslValidateCertificate);
+        props.setProperty(JCSMPProperties.SSL_VALIDATE_CERTIFICATE_DATE, sslValidateCertificateDate);
 
         // Mutual TLS
         if (sslKeyStorePath != null) {
@@ -557,7 +597,11 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
             return;
         }
 
-        log.info("Received message with HTTP content type: " + message.getHTTPContentType() + " and content: " + message.hasContent() + " and binary payload as base64: " + binaryPayloadAsBase64);
+        if (log.isDebugEnabled()) {
+             log.debug("Received message with HTTP content type: " + message.getHTTPContentType()
+                     + " and content: " + message.hasContent()
+                     + " and binary payload as base64: " + binaryPayloadAsBase64);
+        }
 
         SolaceInjectHandler.InjectionOutcome outcome = injectHandler.injectMessage(message);
 
@@ -568,6 +612,9 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
                     break;
                 case FAILED:
                     handleFailedMessage(message);
+                    break;
+                case REJECTED:
+                    rejectMessage(message);
                     break;
                 case ALREADY_SETTLED:
                     // acknowledgeMessage / nackMessage already settled this message during
@@ -595,6 +642,21 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
                         + "], redelivered=" + message.getRedelivered()
                         + ". No ACK — broker redelivery limit applies.");
             }
+        } catch (JCSMPException e) {
+            log.error("Failed to settle message [" + message.getMessageId() + "]", e);
+        }
+    }
+
+    /**
+     * Settles a message as REJECTED so the broker routes it to the DMQ. Used for messages that can
+     * never be processed (e.g. empty payload) — unlike the configurable failureOutcome path, this
+     * is always REJECTED: it preserves the full message for inspection without redelivery.
+     */
+    private void rejectMessage(BytesXMLMessage message) {
+        try {
+            message.settle(XMLMessage.Outcome.REJECTED);
+            log.warn("Settled message [" + message.getMessageId()
+                    + "] as REJECTED (routed to DMQ).");
         } catch (JCSMPException e) {
             log.error("Failed to settle message [" + message.getMessageId() + "]", e);
         }

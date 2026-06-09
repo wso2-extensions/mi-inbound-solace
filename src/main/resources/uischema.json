@@ -221,7 +221,7 @@
               "displayName": "OAuth2 Access Token",
               "inputType": "string",
               "defaultValue": "",
-              "required": true,
+              "required": false,
               "enableCondition": [
                 {
                   "solace.authenticationScheme": "OAUTH2"
@@ -691,7 +691,7 @@
                     "displayName": "Key Store Path",
                     "inputType": "string",
                     "defaultValue": "",
-                    "required": false,
+                    "required": true,
                     "helpTip": "Path to the JKS/PKCS12 file containing the inbound's own client certificate and private key. Required when Authentication Scheme is CLIENT_CERTIFICATE."
                   }
                 },

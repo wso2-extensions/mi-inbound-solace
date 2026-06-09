@@ -201,7 +201,7 @@ public class SolaceUtils {
     private static String resolveContentType(String payload, BytesXMLMessage message,
                                              String contentType) {
         // 1. Explicit inbound param override (highest priority)
-        if (contentType != null) {
+        if (StringUtils.isNotBlank(contentType)) {
             return contentType;
         }
         // 2. HTTP Content-Type set by the publisher (the authoritative signal)
@@ -272,7 +272,7 @@ public class SolaceUtils {
     }
 
     public static void validateRequiredParam(String value, String paramName, String context) {
-        if (StringUtils.isEmpty(value)) {
+        if (StringUtils.isBlank(value)) {
             throw new SynapseException(paramName + " is required for " + context);
         }
     }

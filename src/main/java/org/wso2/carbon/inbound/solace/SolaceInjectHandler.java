@@ -49,6 +49,12 @@ public class SolaceInjectHandler {
         SUCCESS,
         /** Injection failed with an exception. Listener should apply its failureOutcome policy. */
         FAILED,
+        /**
+         * The message can never be processed (e.g. empty/unparseable payload). Listener should
+         * settle it as REJECTED so the broker routes it to the DMQ — this preserves the full
+         * message for inspection without triggering redelivery (which would loop forever).
+         */
+        REJECTED,
         /** A connector op (acknowledgeMessage / nackMessage) already settled the message during mediation. */
         ALREADY_SETTLED
     }
@@ -76,8 +82,11 @@ public class SolaceInjectHandler {
         try {
             String payload = SolaceUtils.extractPayload(message, binaryPayloadAsBase64);
             if (payload == null || payload.isEmpty()) {
-                log.warn("Received empty Solace message, skipping injection.");
-                return InjectionOutcome.SUCCESS;
+                // Nothing to inject. Reject rather than ack so the message (with its headers /
+                // user properties intact) is preserved in the DMQ for inspection. Acking would
+                // silently drop it; FAILED would redeliver the same empty payload forever.
+                log.warn("Received empty Solace message, rejecting (routed to DMQ).");
+                return InjectionOutcome.REJECTED;
             }
 
             synCtx = SolaceUtils.createMessageContext(
@@ -114,10 +123,14 @@ public class SolaceInjectHandler {
                 synapseEnvironment.injectMessage(synCtx);
             }
 
-            // In sequential mode, mediation has run by now and acknowledgeMessage / nackMessage
-            // would have set this flag if invoked. In async mode the flag won't be set yet —
-            // we fall back to SUCCESS and accept that the listener may double-settle in that
-            // configuration; the connector ops are documented as sequential-mode operations.
+            // A connector op (acknowledgeMessage / nackMessage) that ran during mediation settles
+            // the JCSMP message directly and sets SOLACE_INBOUND_MESSAGE_SETTLED=true on the
+            // context. Manual-ack mode is always sequential, so mediation has finished here and
+            // the flag is authoritative. When it is set, return ALREADY_SETTLED so onReceive skips
+            // its own post-mediation settle: settling twice would conflict with the broker's
+            // redelivery tracking — an ack after a connector nack drops the intended FAILED/
+            // REJECTED (redelivery / DMQ) outcome, and a redundant settle can cause infinite
+            // redelivery. (A second ack alone is a Solace no-op; the ack-then-nack case is the hazard.)
             if (Boolean.TRUE.equals(
                     synCtx.getProperty(SolaceInboundConstants.SOLACE_INBOUND_MESSAGE_SETTLED))) {
                 return InjectionOutcome.ALREADY_SETTLED;
