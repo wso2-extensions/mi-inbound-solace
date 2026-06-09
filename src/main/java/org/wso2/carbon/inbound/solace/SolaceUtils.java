@@ -133,17 +133,18 @@ public class SolaceUtils {
             resolvedContentType = resolveContentType(payload, message, contentType);
         }
 
-        axis2MsgCtx.setProperty(
-                org.apache.axis2.Constants.Configuration.CONTENT_TYPE, resolvedContentType);
-        axis2MsgCtx.setProperty(
-                org.apache.axis2.Constants.Configuration.MESSAGE_TYPE, resolvedContentType);
+        // The publisher's Content-Type may carry parameters (e.g. "application/json; charset=UTF-8").
+        // Match on the bare media type so parameterised values still hit the JSON/XML branches, but
+        // keep the full value on the wire headers. MESSAGE_TYPE drives builder/formatter selection,
+        // which is keyed on the base type.
+        String baseContentType = resolvedContentType.split(";", 2)[0].trim();
 
         Map<String, Object> transportHeaders = new HashMap<>();
-        transportHeaders.put("Content-Type", resolvedContentType);
         axis2MsgCtx.setProperty(
                 org.apache.axis2.context.MessageContext.TRANSPORT_HEADERS, transportHeaders);
+        applyContentType(axis2MsgCtx, transportHeaders, resolvedContentType, baseContentType);
 
-        if (SolaceInboundConstants.CONTENT_TYPE_JSON.equalsIgnoreCase(resolvedContentType)) {
+        if (SolaceInboundConstants.CONTENT_TYPE_JSON.equalsIgnoreCase(baseContentType)) {
             try {
                 InputStream in = new ByteArrayInputStream(payload.getBytes(StandardCharsets.UTF_8));
                 // addAsNewFirstChild=true so the envelope body gets a <jsonObject>/<jsonArray>
@@ -151,19 +152,16 @@ public class SolaceUtils {
                 JsonUtil.getNewJsonPayload(axis2MsgCtx, in, true, true);
             } catch (Exception e) {
                 log.warn("Failed to parse JSON payload, falling back to text/plain.", e);
-                axis2MsgCtx.setProperty(
-                        org.apache.axis2.Constants.Configuration.CONTENT_TYPE,
-                        SolaceInboundConstants.CONTENT_TYPE_TEXT);
-                axis2MsgCtx.setProperty(
-                        org.apache.axis2.Constants.Configuration.MESSAGE_TYPE,
+                applyContentType(axis2MsgCtx, transportHeaders,
+                        SolaceInboundConstants.CONTENT_TYPE_TEXT,
                         SolaceInboundConstants.CONTENT_TYPE_TEXT);
                 SOAPFactory soapFactory = OMAbstractFactory.getSOAP12Factory();
                 SOAPEnvelope envelope = soapFactory.getDefaultEnvelope();
                 addTextPayload(envelope, payload);
                 synCtx.setEnvelope(envelope);
             }
-        } else if (SolaceInboundConstants.CONTENT_TYPE_XML.equalsIgnoreCase(resolvedContentType)
-                || SolaceInboundConstants.CONTENT_TYPE_TEXT_XML.equalsIgnoreCase(resolvedContentType)) {
+        } else if (SolaceInboundConstants.CONTENT_TYPE_XML.equalsIgnoreCase(baseContentType)
+                || SolaceInboundConstants.CONTENT_TYPE_TEXT_XML.equalsIgnoreCase(baseContentType)) {
             SOAPFactory soapFactory = OMAbstractFactory.getSOAP12Factory();
             SOAPEnvelope envelope = soapFactory.getDefaultEnvelope();
             try {
@@ -171,11 +169,8 @@ public class SolaceUtils {
                 envelope.getBody().addChild(element);
             } catch (Exception e) {
                 log.warn("Failed to parse XML payload, falling back to text/plain.", e);
-                axis2MsgCtx.setProperty(
-                        org.apache.axis2.Constants.Configuration.CONTENT_TYPE,
-                        SolaceInboundConstants.CONTENT_TYPE_TEXT);
-                axis2MsgCtx.setProperty(
-                        org.apache.axis2.Constants.Configuration.MESSAGE_TYPE,
+                applyContentType(axis2MsgCtx, transportHeaders,
+                        SolaceInboundConstants.CONTENT_TYPE_TEXT,
                         SolaceInboundConstants.CONTENT_TYPE_TEXT);
                 addTextPayload(envelope, payload);
             }
@@ -187,6 +182,26 @@ public class SolaceUtils {
             synCtx.setEnvelope(envelope);
         }
         return synCtx;
+    }
+
+    /**
+     * Sets the content type consistently across the three places downstream mediators read it:
+     * the axis2 CONTENT_TYPE / MESSAGE_TYPE properties and the transport Content-Type header.
+     * Keeping them in one call prevents the header from drifting out of sync when the payload is
+     * downgraded to text/plain after a parse failure.
+     *
+     * @param contentType full content type (may include parameters such as charset) for the wire
+     *                    headers; {@code messageType} should be the bare media type used for
+     *                    axis2 builder/formatter selection.
+     */
+    private static void applyContentType(org.apache.axis2.context.MessageContext axis2MsgCtx,
+                                         Map<String, Object> transportHeaders,
+                                         String contentType, String messageType) {
+        axis2MsgCtx.setProperty(
+                org.apache.axis2.Constants.Configuration.CONTENT_TYPE, contentType);
+        axis2MsgCtx.setProperty(
+                org.apache.axis2.Constants.Configuration.MESSAGE_TYPE, messageType);
+        transportHeaders.put("Content-Type", contentType);
     }
 
     private static void addTextPayload(SOAPEnvelope envelope, String payload) {

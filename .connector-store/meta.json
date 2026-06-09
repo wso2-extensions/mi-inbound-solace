@@ -24,7 +24,7 @@
             "operations": [
                 {
                     "name": "init",
-                        "description": "Initialize Solace Inbound Endpoint",
+                    "description": "Initialize Solace Inbound Endpoint",
                     "params": [
                         {
                             "name": "name",
@@ -73,7 +73,7 @@
                             "type": "boolean",
                             "required": false,
                             "defaultValue": "True",
-                            "description": "If enabled, messages will be processed one after the other within the injection sequence, preserving message order."
+                            "description": "If enabled, messages will be processed one after the other within the injection sequence, preserving message order. Automatically enabled when autoAck is disabled, since client acknowledgement settles each message based on the mediation outcome."
                         },
                         {
                             "name": "coordination",
@@ -87,7 +87,7 @@
                             "type": "string",
                             "required": true,
                             "defaultValue": "tcp://localhost:55555",
-                            "description": "Solace broker host (e.g., tcp://host:port)."
+                            "description": "Solace broker host (e.g., tcp://host:port, or tcps://host:port for TLS)."
                         },
                         {
                             "name": "solace.vpnName",
@@ -101,679 +101,280 @@
                             "type": "string",
                             "required": true,
                             "defaultValue": "",
-                            "description": "Solace username."
+                            "description": "Solace username (for BASIC authentication)."
                         },
                         {
                             "name": "solace.password",
                             "type": "string",
-                            "required": true,
+                            "required": false,
                             "defaultValue": "",
-                            "description": "Solace password."
+                            "description": "Solace password (for BASIC authentication)."
+                        },
+                        {
+                            "name": "solace.clientName",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Optional unique client name for this connection. The broker generates one if omitted."
+                        },
+                        {
+                            "name": "apiProvidedUsername",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Username to send in the SMF login frame when authenticationScheme is CLIENT_CERTIFICATE. Ignored by the broker when it derives identity from the certificate common name."
+                        },
+                        {
+                            "name": "solace.authenticationScheme",
+                            "type": "combo",
+                            "required": false,
+                            "defaultValue": "BASIC",
+                            "description": "Authentication scheme: **BASIC**, **CLIENT_CERTIFICATE**, or **OAUTH2**."
+                        },
+                        {
+                            "name": "solace.oauth2AccessToken",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "OAuth 2.0 access token (used when authenticationScheme is OAUTH2)."
+                        },
+                        {
+                            "name": "solace.oauth2IssuerIdentifier",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Optional OAuth 2.0 issuer identifier."
+                        },
+                        {
+                            "name": "solace.oidcIdToken",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "OIDC ID token (alternative to the OAuth 2.0 access token)."
                         },
                         {
                             "name": "solace.destinationType",
                             "type": "combo",
                             "required": true,
                             "defaultValue": "QUEUE",
-                            "description": "Destination type: QUEUE or TOPIC."
+                            "description": "Destination type: **QUEUE** or **TOPIC**."
                         },
                         {
                             "name": "solace.destinationName",
                             "type": "string",
                             "required": true,
                             "defaultValue": "",
-                            "description": "Solace queue or topic name."
+                            "description": "Solace queue or topic name. For a DIRECT topic subscription, a comma-separated list of topics is accepted."
                         },
                         {
                             "name": "solace.subscriptionType",
                             "type": "combo",
                             "required": false,
                             "defaultValue": "DIRECT",
-                            "description": "Subscription type: DIRECT or DURABLE (for topics)."
+                            "description": "Subscription type for topics: **DIRECT** or **DURABLE**."
                         },
                         {
                             "name": "solace.dteName",
                             "type": "string",
                             "required": false,
                             "defaultValue": "",
-                            "description": "Durable Topic Endpoint name (for durable topic subscriptions)."
+                            "description": "Durable Topic Endpoint name. Required when subscriptionType is DURABLE."
+                        },
+                        {
+                            "name": "solace.selector",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "SQL-92 selector expression applied server-side on queue/DTE flows to filter messages."
+                        },
+                        {
+                            "name": "solace.autoAck",
+                            "type": "checkbox",
+                            "required": false,
+                            "defaultValue": "True",
+                            "description": "If enabled, messages are acknowledged automatically. Disable for client acknowledgement, where the message is settled based on the mediation outcome (this forces sequential processing)."
+                        },
+                        {
+                            "name": "solace.subAckWindowSize",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "255",
+                            "description": "Transport acknowledgement window size for guaranteed messaging."
+                        },
+                        {
+                            "name": "solace.failureOutcome",
+                            "type": "combo",
+                            "required": false,
+                            "defaultValue": "NONE",
+                            "description": "Action on injection failure: **NONE** (no ack; broker redelivery limit applies), **FAILED** (settle as FAILED → redelivered), or **REJECTED** (settle as REJECTED → routed to DMQ)."
                         },
                         {
                             "name": "solace.contentType",
                             "type": "string",
                             "required": false,
                             "defaultValue": "application/json",
-                            "description": "Content-Type for inbound messages."
+                            "description": "Content-Type for inbound messages. Overrides the publisher's Content-Type and payload detection when set."
                         },
                         {
                             "name": "solace.binaryPayloadAsBase64",
                             "type": "checkbox",
                             "required": false,
                             "defaultValue": "False",
-                            "description": "Treat binary payloads as Base64."
+                            "description": "If enabled, binary (BytesMessage) payloads are Base64-encoded rather than UTF-8 decoded."
                         },
                         {
-                            "name": "rabbitmq.queue.type",
-                            "type": "combo",
-                            "required": true,
-                            "defaultValue": "QUORUM",
-                            "description": "Queue type to interact with: **CLASSIC**, **QUORUM** (high availability), or **STREAM** (large, continuous flow)."
-                        },
-                        {
-                            "name": "rabbitmq.queue.auto.declare",
-                            "type": "checkbox",
-                            "required": false,
-                            "defaultValue": "True",
-                            "description": "If enabled, the inbound endpoint will attempt to declare the queue if it doesn't exist."
-                        },
-                        {
-                            "name": "rabbitmq.exchange.name",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "Name of the exchange to bind the queue to. Leave empty to consume directly from the queue."
-                        },
-                        {
-                            "name": "rabbitmq.exchange.type",
-                            "type": "combo",
-                            "required": false,
-                            "defaultValue": "DIRECT",
-                            "description": "Type of the exchange: **DIRECT**, **FANOUT**, **TOPIC**, or **HEADERS**."
-                        },
-                        {
-                            "name": "rabbitmq.exchange.auto.declare",
-                            "type": "checkbox",
-                            "required": false,
-                            "defaultValue": "True",
-                            "description": "If enabled, the inbound endpoint will attempt to declare the exchange if it doesn't exist."
-                        },
-                        {
-                            "name": "rabbitmq.routing.key",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "Routing key for binding the queue to a **DIRECT** or **TOPIC** exchange. Queue name is used if omitted."
-                        },
-                        {
-                            "name": "rabbitmq.connection.sasl.mechanism",
-                            "type": "combo",
-                            "required": true,
-                            "defaultValue": "PLAIN",
-                            "description": "Select the SASL mechanism for connection authentication."
-                        },
-                        {
-                            "name": "rabbitmq.connection.oauth2.enabled",
-                            "type": "checkbox",
-                            "required": false,
-                            "defaultValue": "False",
-                            "description": "Enable OAuth 2.0 (e.g., Client Credentials or Password Grant) for authentication."
-                        },
-                        {
-                            "name": "rabbitmq.server.user.name",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "guest",
-                            "description": "Username for PLAIN authentication."
-                        },
-                        {
-                            "name": "rabbitmq.server.password",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "guest",
-                            "description": "Password for PLAIN authentication."
-                        },
-                        {
-                            "name": "rabbitmq.connection.oauth2.token.endpoint",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "The OAuth 2.0 token endpoint URL to retrieve the access token."
-                        },
-                        {
-                            "name": "rabbitmq.connection.oauth2.grant.type",
-                            "type": "combo",
-                            "required": false,
-                            "defaultValue": "client_credentials",
-                            "description": "The OAuth 2.0 grant type to use for token retrieval."
-                        },
-                        {
-                            "name": "rabbitmq.connection.oauth2.client.id",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "The client ID for OAuth 2.0 authentication."
-                        },
-                        {
-                            "name": "rabbitmq.connection.oauth2.client.secret",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "The client secret for OAuth 2.0 authentication."
-                        },
-                        {
-                            "name": "rabbitmq.connection.oauth2.username",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "Username required when using the **password** OAuth 2.0 grant type."
-                        },
-                        {
-                            "name": "rabbitmq.connection.oauth2.password",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "Password required when using the **password** OAuth 2.0 grant type."
-                        },
-                        {
-                            "name": "rabbitmq.connection.idle.timeout",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "60000",
-                            "description": "Maximum period (in milliseconds) the connection can remain idle before being closed."
-                        },
-                        {
-                            "name": "rabbitmq.connection.establish.retry.count",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "Number of times to retry establishing the connection. Leave blank for default."
-                        },
-                        {
-                            "name": "rabbitmq.connection.establish.retry.interval",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "Interval (in milliseconds) between retries when establishing the connection."
-                        },
-                        {
-                            "name": "rabbitmq.connection.recovery.policy.type",
-                            "type": "combo",
-                            "required": false,
-                            "defaultValue": "FIXED_WITH_INITIAL_DELAY_AND_TIMEOUT",
-                            "description": "Defines the strategy for automatic connection recovery after a disconnection."
-                        },
-                        {
-                            "name": "rabbitmq.connection.recovery.initial.delay",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "Initial delay (in milliseconds) before the first recovery attempt starts."
-                        },
-                        {
-                            "name": "rabbitmq.connection.recovery.retry.interval",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "Fixed interval (in milliseconds) between connection recovery retries."
-                        },
-                        {
-                            "name": "rabbitmq.connection.recovery.retry.timeout",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "Total time (in milliseconds) allowed for the connection recovery process before giving up."
-                        },
-                        {
-                            "name": "rabbitmq.queue.arguments",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "Additional arguments (comma-separated key=value) to use when declaring the queue."
-                        },
-                        {
-                            "name": "rabbitmq.classic.version",
-                            "type": "combo",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "For Classic Queues: select the queue version (V1 or V2). V2 offers better performance."
-                        },
-                        {
-                            "name": "rabbitmq.classic.dead.letter.strategy",
-                            "type": "combo",
-                            "required": false,
-                            "defaultValue": "NON_RETRYABLE_DISCARD",
-                            "description": "Strategy for failed messages: retry and discard, or discard immediately."
-                        },
-                        {
-                            "name": "rabbitmq.classic.max.priority",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "For Classic Queues: the maximum priority level the queue should support (0-255)."
-                        },
-                        {
-                            "name": "rabbitmq.quorum.initial.member.count",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "For Quorum Queues: the initial number of replica nodes required."
-                        },
-                        {
-                            "name": "rabbitmq.quorum.delivery.limit",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "For Quorum Queues: maximum times a message can be redelivered before dead-lettering."
-                        },
-                        {
-                            "name": "rabbitmq.quorum.dead.letter.strategy",
-                            "type": "combo",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "For Quorum Queues: defines the acknowledgment and redelivery behavior for failed messages."
-                        },
-                        {
-                            "name": "rabbitmq.stream.initial.member.count",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "For STREAM queues: the initial number of stream members. Leave blank for default."
-                        },
-                        {
-                            "name": "rabbitmq.stream.max.age",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "For STREAM queues: maximum retention time for stream data (e.g., '300')."
-                        },
-                        {
-                            "name": "rabbitmq.stream.max.segment.size",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "For STREAM queues: maximum size (in bytes) of a single segment file."
-                        },
-                        {
-                            "name": "rabbitmq.queue.exclusive",
-                            "type": "checkbox",
-                            "required": false,
-                            "defaultValue": "False",
-                            "description": "If enabled, the queue is deleted when the declaring connection closes. Only one consumer can use it."
-                        },
-                        {
-                            "name": "rabbitmq.queue.auto.delete",
-                            "type": "checkbox",
-                            "required": false,
-                            "defaultValue": "False",
-                            "description": "If enabled, the queue is deleted when the last consumer disconnects."
-                        },
-                        {
-                            "name": "rabbitmq.header.exchange.binding.arguments",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "For **HEADERS** exchanges: set binding headers (e.g., `x-match=any`)."
-                        },
-                        {
-                            "name": "rabbitmq.exchange.arguments",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "Additional arguments (comma-separated key=value) to use when declaring the exchange."
-                        },
-                        {
-                            "name": "rabbitmq.exchange.auto.delete",
-                            "type": "checkbox",
-                            "required": false,
-                            "defaultValue": "False",
-                            "description": "If enabled, the exchange is deleted when the last queue is unbound."
-                        },
-                        {
-                            "name": "rabbitmq.stream.filters",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "For STREAM queues: filters (comma-separated values) to apply when consuming messages. Only matching messages are consumed."
-                        },
-                        {
-                            "name": "rabbitmq.stream.filter.match.unfiltered",
-                            "type": "checkbox",
-                            "required": false,
-                            "defaultValue": "False",
-                            "description": "If checked, messages without a filter value will also be consumed."
-                        },
-                        {
-                            "name": "rabbitmq.stream.offset.starting.value",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "Message consumption starts from this specific offset value (e.g., message position). This value overrides the Offset Strategy."
-                        },
-                        {
-                            "name": "rabbitmq.stream.offset.starting.strategy",
-                            "type": "combo",
-                            "required": false,
-                            "defaultValue": "NEXT",
-                            "description": "Where consumption starts: **FIRST**, **LAST**, or **NEXT** (for new chunks)."
-                        },
-                        {
-                            "name": "rabbitmq.stream.offset.tracker.flush.interval",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "10",
-                            "description": "Frequency (in seconds) to persist the consumer's current offset."
-                        },
-                        {
-                            "name": "rabbitmq.stream.offset.tracker.shutdown.timeout",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "5",
-                            "description": "Time (in seconds) to wait for the offset tracker to safely flush state on shutdown."
-                        },
-                        {
-                            "name": "rabbitmq.connection.ssl.enabled",
-                            "type": "checkbox",
-                            "required": false,
-                            "defaultValue": "False",
-                            "description": "Enable SSL/TLS for the RabbitMQ connection."
-                        },
-                        {
-                            "name": "rabbitmq.connection.ssl.trust.everything",
-                            "type": "checkbox",
-                            "required": false,
-                            "defaultValue": "False",
-                            "description": "If enabled, all server certificates are accepted. **Not recommended for production.**"
-                        },
-                        {
-                            "name": "rabbitmq.connection.ssl.keystore.location",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "File path to the Keystore containing the client's private key and certificate."
-                        },
-                        {
-                            "name": "rabbitmq.connection.ssl.keystore.type",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "JKS",
-                            "description": "The type of the Keystore (e.g., JKS)."
-                        },
-                        {
-                            "name": "rabbitmq.connection.ssl.keystore.password",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "The password to access the Keystore."
-                        },
-                        {
-                            "name": "rabbitmq.connection.ssl.truststore.location",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "File path to the Truststore containing trusted server certificates."
-                        },
-                        {
-                            "name": "rabbitmq.connection.ssl.truststore.type",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "JKS",
-                            "description": "The type of the Truststore (e.g., JKS)."
-                        },
-                        {
-                            "name": "rabbitmq.connection.ssl.truststore.password",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "The password to access the Truststore."
-                        },
-                        {
-                            "name": "rabbitmq.connection.ssl.version",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "The preferred SSL/TLS protocol version (e.g., 'TLSv1.2', 'TLSv1.3')."
-                        },
-                        {
-                            "name": "rabbitmq.connection.ssl.hostname.verification.enabled",
-                            "type": "checkbox",
-                            "required": false,
-                            "defaultValue": "False",
-                            "description": "If enabled, verifies the hostname in the server's certificate against the connected host name."
-                        },
-                        {
-                            "name": "rabbitmq.dead.letter.queue.name",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "The name of the Dead Letter Queue (DLQ) for failed messages."
-                        },
-                        {
-                            "name": "rabbitmq.dead.letter.queue.type",
-                            "type": "combo",
-                            "required": false,
-                            "defaultValue": "CLASSIC",
-                            "description": "The type of the Dead Letter Queue."
-                        },
-                        {
-                            "name": "rabbitmq.dead.letter.queue.auto.declare",
-                            "type": "checkbox",
-                            "required": false,
-                            "defaultValue": "False",
-                            "description": "If enabled, the inbound endpoint will attempt to declare the Dead Letter Queue."
-                        },
-                        {
-                            "name": "rabbitmq.dead.letter.exchange.name",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "The name of the Dead Letter Exchange (DLX) to route dead-lettered messages."
-                        },
-                        {
-                            "name": "rabbitmq.dead.letter.exchange.type",
-                            "type": "combo",
-                            "required": false,
-                            "defaultValue": "DIRECT",
-                            "description": "The type of the Dead Letter Exchange."
-                        },
-                        {
-                            "name": "rabbitmq.dead.letter.exchange.auto.declare",
-                            "type": "checkbox",
-                            "required": false,
-                            "defaultValue": "False",
-                            "description": "If enabled, the inbound endpoint will attempt to declare the Dead Letter Exchange."
-                        },
-                        {
-                            "name": "rabbitmq.dead.letter.routing.key",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "The routing key for messages sent to the Dead Letter Exchange (for DIRECT DLXs only)."
-                        },
-                        {
-                            "name": "rabbitmq.max.dead.lettered.count",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "Maximum times a message can be dead-lettered and retried before being sent to the final DLQ."
-                        },
-                        {
-                            "name": "rabbitmq.final.dead.letter.queue.name",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "The name of the final DLQ for messages that exceed the Max Dead Lettered Count."
-                        },
-                        {
-                            "name": "rabbitmq.final.dead.letter.queue.type",
-                            "type": "combo",
-                            "required": false,
-                            "defaultValue": "CLASSIC",
-                            "description": "The type of the final Dead Letter Queue."
-                        },
-                        {
-                            "name": "rabbitmq.final.dead.letter.queue.auto.declare",
-                            "type": "checkbox",
-                            "required": false,
-                            "defaultValue": "False",
-                            "description": "If enabled, the inbound endpoint will attempt to declare the final Dead Letter Queue."
-                        },
-                        {
-                            "name": "rabbitmq.final.dead.letter.exchange.name",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "The name of the final Dead Letter Exchange to route messages exceeding retry limits."
-                        },
-                        {
-                            "name": "rabbitmq.final.dead.letter.exchange.type",
-                            "type": "combo",
-                            "required": false,
-                            "defaultValue": "DIRECT",
-                            "description": "The type of the final Dead Letter Exchange."
-                        },
-                        {
-                            "name": "rabbitmq.final.dead.letter.exchange.auto.declare",
-                            "type": "checkbox",
-                            "required": false,
-                            "defaultValue": "False",
-                            "description": "If enabled, the inbound endpoint will attempt to declare the final Dead Letter Exchange."
-                        },
-                        {
-                            "name": "rabbitmq.final.dead.letter.routing.key",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "The routing key for messages sent to the final Dead Letter Exchange (for DIRECT DLXs only)."
-                        },
-                        {
-                            "name": "rabbitmq.dead.letter.publisher.retry.interval",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "10000",
-                            "description": "Interval (in milliseconds) between retries when publishing to a Dead Letter Queue."
-                        },
-                        {
-                            "name": "rabbitmq.dead.letter.publisher.retry.count",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "3",
-                            "description": "Number of times to retry publishing a message to a Dead Letter Queue."
-                        },
-                        {
-                            "name": "rabbitmq.dead.letter.publisher.retry.exponential.factor",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "2.0",
-                            "description": "Exponential backoff factor applied to the retry interval (e.g., 2.0 doubles the interval)."
-                        },
-                        {
-                            "name": "rabbitmq.dead.letter.publisher.ack.wait.time",
+                            "name": "solace.connectionTimeout",
                             "type": "string",
                             "required": false,
                             "defaultValue": "30000",
-                            "description": "Maximum time (in milliseconds) to wait for the broker to acknowledge a dead-letter message."
+                            "description": "Connection establishment timeout in milliseconds."
                         },
                         {
-                            "name": "rabbitmq.dead.letter.publisher.shutdown.timeout",
+                            "name": "solace.connectRetries",
                             "type": "string",
                             "required": false,
-                            "defaultValue": "180000",
-                            "description": "Time (in milliseconds) to wait for the dead letter publisher to shut down gracefully."
+                            "defaultValue": "3",
+                            "description": "Number of times to retry connecting before failing."
                         },
                         {
-                            "name": "rabbitmq.throttle.enabled",
+                            "name": "solace.connectRetriesPerHost",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "3",
+                            "description": "Number of connection attempts per host before moving to the next host."
+                        },
+                        {
+                            "name": "solace.reconnectRetries",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "3",
+                            "description": "Number of times to retry reconnecting after the connection is lost."
+                        },
+                        {
+                            "name": "solace.reconnectRetryWait",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "3000",
+                            "description": "Wait time (in milliseconds) between reconnect attempts."
+                        },
+                        {
+                            "name": "solace.sslTrustStorePath",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "File path to the truststore for TLS connections. If omitted, the JVM default truststore is used."
+                        },
+                        {
+                            "name": "solace.sslTrustStorePassword",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Password for the truststore."
+                        },
+                        {
+                            "name": "solace.sslTrustStoreFormat",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Truststore format (e.g., JKS)."
+                        },
+                        {
+                            "name": "solace.sslKeyStorePath",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "File path to the keystore for mutual TLS (client certificate authentication)."
+                        },
+                        {
+                            "name": "solace.sslKeyStorePassword",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Password for the keystore."
+                        },
+                        {
+                            "name": "solace.sslKeyStoreFormat",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Keystore format (e.g., JKS)."
+                        },
+                        {
+                            "name": "solace.sslKeyPassword",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Password for the private key within the keystore."
+                        },
+                        {
+                            "name": "solace.sslValidateCertificate",
                             "type": "checkbox",
                             "required": false,
-                            "defaultValue": "false",
-                            "description": "If enabled, message consumption will be throttled to a specified rate."
+                            "defaultValue": "True",
+                            "description": "If enabled, the server certificate is validated on TLS connections. **Disabling is not recommended for production.**"
                         },
                         {
-                            "name": "rabbitmq.throttle.mode",
-                            "type": "combo",
-                            "required": false,
-                            "defaultValue": "BATCH",
-                            "description": "Mode of throttling: **FIXED_INTERVAL** or **BATCH**."
-                        },
-                        {
-                            "name": "rabbitmq.throttle.timeUnit",
-                            "type": "combo",
-                            "required": false,
-                            "defaultValue": "MINUTE",
-                            "description": "The time unit for the throttling rate: per **MINUTE**, **HOUR**, or **DAY**."
-                        },
-                        {
-                            "name": "rabbitmq.throttle.count",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "Maximum number of messages to consume within the specified time unit."
-                        },
-                        {
-                            "name": "rabbitmq.server.virtual.host",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "The virtual host (vhost) to connect to. Leave blank for the default '/' vhost."
-                        },
-                        {
-                            "name": "rabbitmq.message.content.type",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "The Content-Type header to set for the consumed message  if the content-type cannot be determined from the consumed message."
-                        },
-                        {
-                            "name": "rabbitmq.message.content.encoding",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "The content encoding/character set (e.g., UTF-8) used for the message body if the encoding/character set cannot be determined from the consumed message."
-                        },
-                        {
-                            "name": "rabbitmq.queue.overflow.strategy",
-                            "type": "combo",
-                            "required": false,
-                            "defaultValue": "DROP_HEAD",
-                            "description": "What happens when queue is full: **DROP_HEAD** (oldest discarded), **REJECT_PUBLISH**, or **REJECT_PUBLISH_DLX**."
-                        },
-                        {
-                            "name": "rabbitmq.message.requeue.delay",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "",
-                            "description": "Delay (in milliseconds) before a failed message is automatically requeued."
-                        },
-                        {
-                            "name": "rabbitmq.auto.ack.enabled",
+                            "name": "solace.sslValidateCertificateDate",
                             "type": "checkbox",
                             "required": false,
-                            "defaultValue": "false",
-                            "description": "If enabled, messages are automatically acknowledged (ACKed) upon receipt."
+                            "defaultValue": "True",
+                            "description": "If enabled, the server certificate's validity dates are checked on TLS connections."
                         },
                         {
-                            "name": "rabbitmq.ack.wait.time",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "180000",
-                            "description": "Maximum time (in milliseconds) to wait for a message acknowledgment (ACK)."
-                        },
-                        {
-                            "name": "rabbitmq.concurrent.consumers.count",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "1",
-                            "description": "The number of concurrent consumers to create for processing messages."
-                        },
-                        {
-                            "name": "rabbitmq.message.receiver.thread.pool.size",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "1",
-                            "description": "Size of the thread pool for receiving messages. Recommended to be greater than the number of concurrent consumers."
-                        },
-                        {
-                            "name": "rabbitmq.consumer.initial.credit",
-                            "type": "string",
-                            "required": false,
-                            "defaultValue": "1",
-                            "description": "The prefetch count, limiting unacknowledged messages sent to the consumer (QoS)."
-                        },
-                        {
-                            "name": "rabbitmq.classic.override.requeue.with.discard",
+                            "name": "solace.generateReceiveTimestamps",
                             "type": "checkbox",
                             "required": false,
                             "defaultValue": "False",
-                            "description": "For Classic Queues: if enabled, any requeue attempt for a failed message will result in discard instead."
+                            "description": "If enabled, JCSMP stamps a receive timestamp on incoming messages."
+                        },
+                        {
+                            "name": "solace.provisionDestination",
+                            "type": "checkbox",
+                            "required": false,
+                            "defaultValue": "False",
+                            "description": "If enabled, the inbound endpoint provisions the queue or Durable Topic Endpoint if it does not already exist."
+                        },
+                        {
+                            "name": "solace.queueAccessType",
+                            "type": "combo",
+                            "required": false,
+                            "defaultValue": "EXCLUSIVE",
+                            "description": "Access type for a provisioned queue: **EXCLUSIVE** or **NON_EXCLUSIVE**."
+                        },
+                        {
+                            "name": "solace.queuePermission",
+                            "type": "combo",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Permission for a provisioned queue: **CONSUME**, **DELETE**, **MODIFY_TOPIC**, or **READ_ONLY**."
+                        },
+                        {
+                            "name": "solace.queueQuotaMB",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "0",
+                            "description": "Quota (in MB) for a provisioned queue. 0 leaves the broker default."
+                        },
+                        {
+                            "name": "solace.queueMaxMsgSize",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "0",
+                            "description": "Maximum message size (in bytes) for a provisioned queue. 0 leaves the broker default."
+                        },
+                        {
+                            "name": "solace.queueRespectTTL",
+                            "type": "checkbox",
+                            "required": false,
+                            "defaultValue": "False",
+                            "description": "If enabled, a provisioned queue respects the message time-to-live (TTL)."
+                        },
+                        {
+                            "name": "solace.queueMaxMsgRedelivery",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "0",
+                            "description": "Maximum redelivery attempts for a provisioned queue before dead-lettering. 0 leaves the broker default."
                         }
                     ],
                     "isHidden": false
