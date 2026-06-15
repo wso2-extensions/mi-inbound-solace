@@ -37,8 +37,9 @@ import org.apache.commons.logging.LogFactory;
  *       reconnect (distinct from session-level reconnect); logged at WARN/INFO.</li>
  *   <li>{@code FLOW_DOWN} — terminal (queue deleted, permission revoked,
  *       broker rejected the bind). The supplied {@code onFlowDown} callback is
- *       invoked so the listener can tear itself down and let the MI framework
- *       trigger a resume.</li>
+ *       invoked on a separate daemon thread so the listener can tear itself down
+ *       (closing the flow/session off the JCSMP callback thread) and let the MI
+ *       framework trigger a resume.</li>
  * </ul>
  */
 public class SolaceFlowEventHandler implements FlowEventHandler {
@@ -71,11 +72,20 @@ public class SolaceFlowEventHandler implements FlowEventHandler {
         } else if (event == FlowEvent.FLOW_DOWN) {
             log.error("SolaceListener [" + listenerName + "] flow DOWN (terminal): "
                     + eventArgs + ". Tearing down listener for MI resume cycle.");
-            try {
-                onFlowDown.run();
-            } catch (Exception e) {
-                log.error("Error while handling FLOW_DOWN for listener [" + listenerName + "]", e);
-            }
+            // Run on a daemon thread: closing a flow/session from within its own JCSMP
+            // callback thread can block.
+            Thread teardown = new Thread(() -> {
+                try {
+                    // onFlowDown is the listener's destroy(): closes the flow/session and
+                    // clears isConnected so the MI framework can resume the listener.
+                    onFlowDown.run();
+                } catch (Exception e) {
+                    log.error("Error while handling FLOW_DOWN for listener ["
+                            + listenerName + "]", e);
+                }
+            }, "solace-flowdown-" + listenerName);
+            teardown.setDaemon(true);
+            teardown.start();
         } else if (log.isDebugEnabled()) {
             log.debug("SolaceListener [" + listenerName + "] flow event: " + eventArgs);
         }

@@ -406,9 +406,9 @@
               "name": "solace.autoAck",
               "displayName": "Auto Acknowledge",
               "inputType": "checkbox",
-              "defaultValue": false,
+              "defaultValue": true,
               "required": false,
-              "helpTip": "When enabled, messages are auto-acknowledged on receipt — the mediation sequence cannot influence settlement. Leave disabled (default) if you intend to call acknowledgeMessage / nackMessage from the sequence."
+              "helpTip": "Enabled by default: messages are auto-acknowledged on receipt and the mediation sequence cannot influence settlement. Disable this if you intend to call acknowledgeMessage / nackMessage from the sequence."
             }
           },
           {

@@ -32,6 +32,7 @@ import org.apache.synapse.mediators.MediatorFaultHandler;
 import org.apache.synapse.mediators.base.SequenceMediator;
 
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Handles injection of Solace messages into the Synapse engine.
@@ -65,6 +66,10 @@ public class SolaceInjectHandler {
     private final boolean sequential;
     private final String contentType;
     private final boolean binaryPayloadAsBase64;
+
+    // Delivery count is a per-message capability that may be unsupported on the endpoint. Log the
+    // gap once (not per message) — the broker capability is constant for this handler's lifetime.
+    private final AtomicBoolean deliveryCountUnsupportedLogged = new AtomicBoolean(false);
 
     public SolaceInjectHandler(String injectingSequence, String onErrorSequence,
                                SynapseEnvironment synapseEnvironment, boolean sequential,
@@ -171,8 +176,12 @@ public class SolaceInjectHandler {
                     synCtx.setProperty(SolaceInboundConstants.SOLACE_DELIVERY_COUNT,
                             String.valueOf(message.getDeliveryCount()));
                 } catch (UnsupportedOperationException e) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Delivery count not supported on this broker endpoint, skipping.");
+                    // Capability gap, not an error — the message is processed normally; only the
+                    // optional delivery-count property is omitted. Log once to avoid per-message noise.
+                    if (deliveryCountUnsupportedLogged.compareAndSet(false, true)) {
+                        log.warn("Delivery count is not supported on this broker endpoint; the '"
+                                + SolaceInboundConstants.SOLACE_DELIVERY_COUNT
+                                + "' property will be omitted.");
                     }
                 }
             }

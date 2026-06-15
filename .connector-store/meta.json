@@ -50,7 +50,7 @@
                         {
                             "name": "onError",
                             "type": "string",
-                            "required": true,
+                            "required": false,
                             "defaultValue": "",
                             "description": "The name of the **error handling sequence** to execute if an error occurs during message consumption or processing."
                         },
@@ -212,8 +212,8 @@
                             "name": "solace.contentType",
                             "type": "string",
                             "required": false,
-                            "defaultValue": "application/json",
-                            "description": "Content-Type for inbound messages. Overrides the publisher's Content-Type and payload detection when set."
+                            "defaultValue": "",
+                            "description": "Content-Type for inbound messages. Leave empty to auto-detect from the message's HTTP Content-Type header or payload. When set, it overrides that detection."
                         },
                         {
                             "name": "solace.binaryPayloadAsBase64",

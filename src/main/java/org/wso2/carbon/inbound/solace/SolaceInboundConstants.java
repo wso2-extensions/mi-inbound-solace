@@ -108,7 +108,6 @@ public final class SolaceInboundConstants {
     public static final String QUEUE_QUOTA_MB           = "solace.queueQuotaMB";
     public static final String QUEUE_MAX_MSG_SIZE       = "solace.queueMaxMsgSize";
     public static final String QUEUE_RESPECT_TTL        = "solace.queueRespectTTL";
-    public static final String QUEUE_DISCARD_BEHAVIOUR  = "solace.queueDiscardBehaviour";
     public static final String QUEUE_MAX_MSG_REDELIVERY = "solace.queueMaxMsgRedelivery";
 
     // Content type values

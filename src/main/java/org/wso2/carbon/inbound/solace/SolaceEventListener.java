@@ -34,6 +34,7 @@ import com.solacesystems.jcsmp.XMLMessageConsumer;
 import com.solacesystems.jcsmp.XMLMessageListener;
 
 import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.SynapseException;
@@ -450,7 +451,7 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
         props.setProperty(JCSMPProperties.USERNAME, username);
         props.setProperty(JCSMPProperties.PASSWORD, password);
 
-        if (clientName != null) {
+        if (StringUtils.isNotBlank(clientName)) {
             props.setProperty(JCSMPProperties.CLIENT_NAME, clientName);
         }
 
@@ -472,15 +473,13 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
         props.setProperty(JCSMPProperties.GENERATE_RCV_TIMESTAMPS, generateReceiveTimestamps);
 
         // SSL/TLS — custom truststore (optional; falls back to JVM default when unset)
-        if (sslTrustStorePath != null) {
+        if (StringUtils.isNotBlank(sslTrustStorePath)) {
             props.setProperty(JCSMPProperties.SSL_TRUST_STORE, sslTrustStorePath);
-            if (sslTrustStorePassword != null) {
-                props.setProperty(JCSMPProperties.SSL_TRUST_STORE_PASSWORD,
-                        sslTrustStorePassword);
+            if (StringUtils.isNotBlank(sslTrustStorePassword)) {
+                props.setProperty(JCSMPProperties.SSL_TRUST_STORE_PASSWORD, sslTrustStorePassword);
             }
-            if (sslTrustStoreFormat != null) {
-                props.setProperty(JCSMPProperties.SSL_TRUST_STORE_FORMAT,
-                        sslTrustStoreFormat);
+            if (StringUtils.isNotBlank(sslTrustStoreFormat)) {
+                props.setProperty(JCSMPProperties.SSL_TRUST_STORE_FORMAT, sslTrustStoreFormat);
             }
         }
 
@@ -489,15 +488,15 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
         props.setProperty(JCSMPProperties.SSL_VALIDATE_CERTIFICATE_DATE, sslValidateCertificateDate);
 
         // Mutual TLS
-        if (sslKeyStorePath != null) {
+        if (StringUtils.isNotBlank(sslKeyStorePath)) {
             props.setProperty(JCSMPProperties.SSL_KEY_STORE, sslKeyStorePath);
-            if (sslKeyStorePassword != null) {
+            if (StringUtils.isNotBlank(sslKeyStorePassword)) {
                 props.setProperty(JCSMPProperties.SSL_KEY_STORE_PASSWORD, sslKeyStorePassword);
             }
-            if (sslKeyStoreFormat != null) {
+            if (StringUtils.isNotBlank(sslKeyStoreFormat)) {
                 props.setProperty(JCSMPProperties.SSL_KEY_STORE_FORMAT, sslKeyStoreFormat);
             }
-            if (sslKeyPassword != null) {
+            if (StringUtils.isNotBlank(sslKeyPassword)) {
                 props.setProperty(JCSMPProperties.SSL_PRIVATE_KEY_PASSWORD, sslKeyPassword);
             }
         }
