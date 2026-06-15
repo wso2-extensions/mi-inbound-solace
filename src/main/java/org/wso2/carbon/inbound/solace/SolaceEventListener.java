@@ -267,6 +267,8 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
         }
 
         try {
+            validateConnectionParameters();
+
             session = JCSMPFactory.onlyInstance().createSession(
                     buildJCSMPProperties(), null,
                     new SolaceSessionEventHandler(name));
@@ -439,6 +441,30 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
             throw new SynapseException(
                     "Unsupported destinationType: '" + destinationType
                     + "'. Valid values: QUEUE, TOPIC.");
+        }
+    }
+
+    /**
+     * Validates required connection/auth inputs before a session is created, so missing values
+     * fail fast with an actionable SynapseException instead of a generic JCSMP error (or, for a
+     * null BASIC username, an NPE during SMF login-frame build).
+     */
+    private void validateConnectionParameters() {
+        validateRequiredParam(host, SolaceInboundConstants.HOST, "Solace connection");
+
+        if (SolaceInboundConstants.AUTH_SCHEME_OAUTH2.equalsIgnoreCase(authScheme)) {
+            if (StringUtils.isBlank(oauth2AccessToken) && StringUtils.isBlank(oidcIdToken)) {
+                throw new SynapseException("OAUTH2 authentication requires either '"
+                        + SolaceInboundConstants.OAUTH2_ACCESS_TOKEN + "' or '"
+                        + SolaceInboundConstants.OIDC_ID_TOKEN + "'.");
+            }
+        } else if (SolaceInboundConstants.AUTH_SCHEME_CLIENT_CERTIFICATE.equalsIgnoreCase(authScheme)) {
+            validateRequiredParam(sslKeyStorePath, SolaceInboundConstants.SSL_KEY_STORE_PATH,
+                    "CLIENT_CERTIFICATE authentication");
+        } else {
+            // BASIC (default). A null username NPEs in JCSMP during login-frame build; password is
+            // left to the broker to reject, since some setups allow username-only authentication.
+            validateRequiredParam(username, SolaceInboundConstants.USERNAME, "BASIC authentication");
         }
     }
 
