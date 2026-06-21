@@ -149,61 +149,61 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
                 coordination, sequential);
 
         // Connection
-        this.host       = properties.getProperty(SolaceInboundConstants.HOST);
-        this.vpnName    = properties.getProperty(SolaceInboundConstants.VPN_NAME, "default");
-        this.username   = properties.getProperty(SolaceInboundConstants.USERNAME);
+        this.host = properties.getProperty(SolaceInboundConstants.HOST);
+        this.vpnName = properties.getProperty(SolaceInboundConstants.VPN_NAME, "default");
+        this.username = properties.getProperty(SolaceInboundConstants.USERNAME);
         this.apiProvidedUsername = properties.getProperty(SolaceInboundConstants.API_PROVIDED_USERNAME);
-        this.password   = properties.getProperty(SolaceInboundConstants.PASSWORD);
+        this.password = properties.getProperty(SolaceInboundConstants.PASSWORD);
         this.clientName = properties.getProperty(SolaceInboundConstants.CLIENT_NAME);
 
         // Authentication scheme
-        this.authScheme             = properties.getProperty(
+        this.authScheme = properties.getProperty(
                 SolaceInboundConstants.AUTH_SCHEME,
                 SolaceInboundConstants.AUTH_SCHEME_BASIC);
-        this.oauth2AccessToken      = properties.getProperty(SolaceInboundConstants.OAUTH2_ACCESS_TOKEN);
+        this.oauth2AccessToken = properties.getProperty(SolaceInboundConstants.OAUTH2_ACCESS_TOKEN);
         this.oauth2IssuerIdentifier = properties.getProperty(SolaceInboundConstants.OAUTH2_ISSUER_IDENTIFIER);
-        this.oidcIdToken            = properties.getProperty(SolaceInboundConstants.OIDC_ID_TOKEN);
+        this.oidcIdToken = properties.getProperty(SolaceInboundConstants.OIDC_ID_TOKEN);
 
         // Connection retry
-        this.connectionTimeoutMillis  = getIntProperty(properties,
+        this.connectionTimeoutMillis = getIntProperty(properties,
                 SolaceInboundConstants.CONNECTION_TIMEOUT, 30000);
-        this.connectRetries           = getIntProperty(properties,
+        this.connectRetries = getIntProperty(properties,
                 SolaceInboundConstants.CONNECT_RETRIES, 3);
-        this.connectRetriesPerHost    = getIntProperty(properties,
+        this.connectRetriesPerHost = getIntProperty(properties,
                 SolaceInboundConstants.CONNECT_RETRIES_PER_HOST, 3);
-        this.reconnectRetries         = getIntProperty(properties,
+        this.reconnectRetries = getIntProperty(properties,
                 SolaceInboundConstants.RECONNECT_RETRIES, 3);
         this.reconnectRetryWaitMillis = getIntProperty(properties,
                 SolaceInboundConstants.RECONNECT_RETRY_WAIT, 3000);
 
         // SSL/TLS
-        this.sslTrustStorePath          = properties.getProperty(SolaceInboundConstants.SSL_TRUST_STORE_PATH);
-        this.sslTrustStorePassword      = properties.getProperty(SolaceInboundConstants.SSL_TRUST_STORE_PASSWORD);
-        this.sslTrustStoreFormat        = properties.getProperty(SolaceInboundConstants.SSL_TRUST_STORE_FORMAT);
-        this.sslKeyStorePath            = properties.getProperty(SolaceInboundConstants.SSL_KEY_STORE_PATH);
-        this.sslKeyStorePassword        = properties.getProperty(SolaceInboundConstants.SSL_KEY_STORE_PASSWORD);
-        this.sslKeyStoreFormat          = properties.getProperty(SolaceInboundConstants.SSL_KEY_STORE_FORMAT);
-        this.sslKeyPassword             = properties.getProperty(SolaceInboundConstants.SSL_KEY_PASSWORD);
-        this.sslValidateCertificate     = getBooleanProperty(properties,
+        this.sslTrustStorePath = properties.getProperty(SolaceInboundConstants.SSL_TRUST_STORE_PATH);
+        this.sslTrustStorePassword = properties.getProperty(SolaceInboundConstants.SSL_TRUST_STORE_PASSWORD);
+        this.sslTrustStoreFormat = properties.getProperty(SolaceInboundConstants.SSL_TRUST_STORE_FORMAT);
+        this.sslKeyStorePath = properties.getProperty(SolaceInboundConstants.SSL_KEY_STORE_PATH);
+        this.sslKeyStorePassword = properties.getProperty(SolaceInboundConstants.SSL_KEY_STORE_PASSWORD);
+        this.sslKeyStoreFormat = properties.getProperty(SolaceInboundConstants.SSL_KEY_STORE_FORMAT);
+        this.sslKeyPassword = properties.getProperty(SolaceInboundConstants.SSL_KEY_PASSWORD);
+        this.sslValidateCertificate = getBooleanProperty(properties,
                 SolaceInboundConstants.SSL_VALIDATE_CERTIFICATE, true);
         this.sslValidateCertificateDate = getBooleanProperty(properties,
                 SolaceInboundConstants.SSL_VALIDATE_CERTIFICATE_DATE, true);
-        this.generateReceiveTimestamps  = getBooleanProperty(properties,
+        this.generateReceiveTimestamps = getBooleanProperty(properties,
                 SolaceInboundConstants.GENERATE_RECEIVE_TIMESTAMPS, false);
 
         // Destination
-        this.destinationType  = properties.getProperty(SolaceInboundConstants.DESTINATION_TYPE);
-        this.destinationName  = properties.getProperty(SolaceInboundConstants.DESTINATION_NAME);
+        this.destinationType = properties.getProperty(SolaceInboundConstants.DESTINATION_TYPE);
+        this.destinationName = properties.getProperty(SolaceInboundConstants.DESTINATION_NAME);
         this.subscriptionType = properties.getProperty(
                 SolaceInboundConstants.SUBSCRIPTION_TYPE,
                 SolaceInboundConstants.SUBSCRIPTION_TYPE_DIRECT);
         this.dteName = properties.getProperty(SolaceInboundConstants.DTE_NAME);
 
         // Consumer behaviour
-        this.autoAck              = getBooleanProperty(properties, SolaceInboundConstants.AUTO_ACK, true);
-        this.subAckWindowSize     = getIntProperty(properties,
+        this.autoAck = getBooleanProperty(properties, SolaceInboundConstants.AUTO_ACK, true);
+        this.subAckWindowSize = getIntProperty(properties,
                 SolaceInboundConstants.SUB_ACK_WINDOW_SIZE, 255);
-        this.failureOutcome       = properties.getProperty(
+        this.failureOutcome = properties.getProperty(
                 SolaceInboundConstants.FAILURE_OUTCOME,
                 SolaceInboundConstants.FAILURE_OUTCOME_NONE);
         this.binaryPayloadAsBase64 = getBooleanProperty(properties,
@@ -213,16 +213,16 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
         // Queue provisioning
         this.provisionDestination = getBooleanProperty(properties,
                 SolaceInboundConstants.PROVISION_DESTINATION, false);
-        this.queueAccessType      = properties.getProperty(
+        this.queueAccessType = properties.getProperty(
                 SolaceInboundConstants.QUEUE_ACCESS_TYPE,
                 SolaceInboundConstants.QUEUE_ACCESS_EXCLUSIVE);
-        this.queuePermission      = properties.getProperty(
+        this.queuePermission = properties.getProperty(
                 SolaceInboundConstants.QUEUE_PERMISSION);
-        this.queueQuotaMB         = getIntProperty(properties,
+        this.queueQuotaMB = getIntProperty(properties,
                 SolaceInboundConstants.QUEUE_QUOTA_MB, 0);
-        this.queueMaxMsgSize      = getIntProperty(properties,
+        this.queueMaxMsgSize = getIntProperty(properties,
                 SolaceInboundConstants.QUEUE_MAX_MSG_SIZE, 0);
-        this.queueRespectTTL      = getBooleanProperty(properties,
+        this.queueRespectTTL = getBooleanProperty(properties,
                 SolaceInboundConstants.QUEUE_RESPECT_TTL, false);
         this.queueMaxMsgRedelivery = getIntProperty(properties,
                 SolaceInboundConstants.QUEUE_MAX_MSG_REDELIVERY, 0);
@@ -271,7 +271,7 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
 
             session = JCSMPFactory.onlyInstance().createSession(
                     buildJCSMPProperties(), null,
-                    new SolaceSessionEventHandler(name));
+                    new SolaceSessionEventHandler(name, this::destroy));
             session.connect();
             isConnected = true;
 
@@ -535,13 +535,14 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
                 .equalsIgnoreCase(authScheme)) {
             props.setProperty(JCSMPProperties.AUTHENTICATION_SCHEME,
                     JCSMPProperties.AUTHENTICATION_SCHEME_CLIENT_CERTIFICATE);
-            // JCSMP requires a non-null USERNAME to build the SMF login frame, even when authentication is by client certificate. 
-            if (apiProvidedUsername != null && !apiProvidedUsername.trim().isEmpty()) {     
+            // JCSMP requires a non-null USERNAME to build the SMF login frame, even when authentication is by client certificate.
+            if (apiProvidedUsername != null && !apiProvidedUsername.trim().isEmpty()) {
                 props.setProperty(JCSMPProperties.USERNAME, apiProvidedUsername);
             } else {
-               // JCSMP NPEs on null USERNAME during SMF login frame build; broker ignores this
-               // value when username-source=common-name (default) and derives the identity from the TLS-presented cert.
-               props.setProperty(JCSMPProperties.USERNAME, "<client-cert-cn>");
+               // No username supplied: use a non-null placeholder so JCSMP can build the login frame.
+               // Under the default broker config (username-source=common-name) the identity is derived
+               // from the TLS-presented cert, so this value is not used for authentication.
+               props.setProperty(JCSMPProperties.USERNAME, SolaceInboundConstants.PLACEHOLDER_USERNAME);
             }
         } else if (SolaceInboundConstants.AUTH_SCHEME_OAUTH2
                 .equalsIgnoreCase(authScheme)) {
@@ -556,9 +557,10 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
             if (oidcIdToken != null) {
                 props.setProperty(JCSMPProperties.OIDC_ID_TOKEN, oidcIdToken);
             }
-            // JCSMP NPEs on null USERNAME during SMF login frame build; broker ignores this value when using OAuth2 authentication.
-            // A dummy value to avoid the NPE; the real OAuth2 token is sent in the OAUTH2_ACCESS_TOKEN property and the broker authenticates based on that.
-            props.setProperty(JCSMPProperties.USERNAME, "<oauth-token>");
+            // Non-null placeholder so JCSMP can build the login frame (it NPEs on a null USERNAME).
+            // Under OAuth2 the broker authenticates from the OAUTH2_ACCESS_TOKEN / OIDC_ID_TOKEN set
+            // above, so this value is not used for authentication.
+            props.setProperty(JCSMPProperties.USERNAME, SolaceInboundConstants.PLACEHOLDER_USERNAME);
         } else {
             props.setProperty(JCSMPProperties.AUTHENTICATION_SCHEME,
                     JCSMPProperties.AUTHENTICATION_SCHEME_BASIC);
@@ -690,10 +692,26 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
     /**
      * Called by JCSMP when all internal reconnect retries are exhausted.
      * Tears down the listener so the MI framework can trigger resume.
+     *
+     * <p>onException() runs on a JCSMP-managed callback thread. destroy() calls
+     * session.closeSession(), which waits for all active callbacks to return before it
+     * completes — including this one. Calling it inline would have the callback block on
+     * a shutdown that is itself waiting for the callback, a deadlock. The teardown is
+     * therefore dispatched to a short-lived daemon thread so onException() returns
+     * immediately (same approach as SolaceFlowEventHandler's FLOW_DOWN handling).
      */
     @Override
     public void onException(JCSMPException exception) {
         log.error("SolaceListener [" + name + "] encountered an error", exception);
-        destroy();
+        Thread teardown = new Thread(() -> {
+            try {
+                destroy();
+            } catch (Exception e) {
+                log.error("Error while tearing down SolaceListener [" + name
+                        + "] after onException", e);
+            }
+        }, "solace-onexception-" + name);
+        teardown.setDaemon(true);
+        teardown.start();
     }
 }

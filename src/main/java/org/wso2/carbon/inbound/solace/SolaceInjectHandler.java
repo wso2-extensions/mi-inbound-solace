@@ -74,12 +74,12 @@ public class SolaceInjectHandler {
     public SolaceInjectHandler(String injectingSequence, String onErrorSequence,
                                SynapseEnvironment synapseEnvironment, boolean sequential,
                                String contentType, boolean binaryPayloadAsBase64) {
-        this.injectingSequence      = injectingSequence;
-        this.onErrorSequence        = onErrorSequence;
-        this.synapseEnvironment     = synapseEnvironment;
-        this.sequential             = sequential;
-        this.contentType            = contentType;
-        this.binaryPayloadAsBase64  = binaryPayloadAsBase64;
+        this.injectingSequence = injectingSequence;
+        this.onErrorSequence = onErrorSequence;
+        this.synapseEnvironment = synapseEnvironment;
+        this.sequential = sequential;
+        this.contentType = contentType;
+        this.binaryPayloadAsBase64 = binaryPayloadAsBase64;
     }
 
     public InjectionOutcome injectMessage(BytesXMLMessage message) {
