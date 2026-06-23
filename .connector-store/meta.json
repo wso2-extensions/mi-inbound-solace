@@ -1,0 +1,386 @@
+{
+    "name": "Solace (Inbound)",
+    "owner": "WSO2",
+    "product": "MI",
+    "mavenGroupId": "org.wso2.integration.inbound",
+    "mavenArtifactId": "mi-inbound-solace",
+    "rank": 15,
+    "type": "Inbound",
+    "category": "Developer Tools",
+    "documentationUrl": "https://mi.docs.wso2.com/en/latest/reference/connectors/solace-connector/solace-connector-overview/",
+    "description": "Solace inbound endpoint acts as a message consumer for Solace PubSub+ broker. It receives messages from configured topic/queue and inject them into the mediation flow.",
+    "status": "Active",
+    "labels": [
+        "integration",
+        "communication",
+        "inbound-endpoint"
+    ],
+    "releases": [
+        {
+            "tagName": "v1.0.0",
+            "products": [
+                "MI 4.6.0"
+            ],
+            "operations": [
+                {
+                    "name": "init",
+                    "description": "Initialize Solace Inbound Endpoint",
+                    "params": [
+                        {
+                            "name": "name",
+                            "type": "string",
+                            "required": true,
+                            "defaultValue": "",
+                            "description": "A unique name for this Solace Inbound Endpoint configuration."
+                        },
+                        {
+                            "name": "class",
+                            "type": "string",
+                            "required": true,
+                            "defaultValue": "org.wso2.carbon.inbound.solace.SolaceEventListener",
+                            "description": ""
+                        },
+                        {
+                            "name": "sequence",
+                            "type": "string",
+                            "required": true,
+                            "defaultValue": "",
+                            "description": "The name of the **mediation sequence** that will process the consumed Solace messages."
+                        },
+                        {
+                            "name": "onError",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "The name of the **error handling sequence** to execute if an error occurs during message consumption or processing."
+                        },
+                        {
+                            "name": "suspend",
+                            "type": "checkbox",
+                            "required": false,
+                            "defaultValue": "False",
+                            "description": ""
+                        },
+                        {
+                            "name": "inbound.behavior",
+                            "type": "string",
+                            "required": true,
+                            "defaultValue": "eventBased",
+                            "description": "Defines the message consumption mode (e.g., event-based for immediate processing)."
+                        },
+                        {
+                            "name": "sequential",
+                            "type": "boolean",
+                            "required": false,
+                            "defaultValue": "True",
+                            "description": "If enabled, messages will be processed one after the other within the injection sequence, preserving message order. Automatically enabled when autoAck is disabled, since client acknowledgement settles each message based on the mediation outcome."
+                        },
+                        {
+                            "name": "coordination",
+                            "type": "boolean",
+                            "required": false,
+                            "defaultValue": "True",
+                            "description": "In a clustered environment, set this to true to ensure that only a **single worker node** is consuming messages from the queue at any given time."
+                        },
+                        {
+                            "name": "solace.host",
+                            "type": "string",
+                            "required": true,
+                            "defaultValue": "tcp://localhost:55555",
+                            "description": "Solace broker host (e.g., tcp://host:port, or tcps://host:port for TLS)."
+                        },
+                        {
+                            "name": "solace.vpnName",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "default",
+                            "description": "Solace Message VPN name."
+                        },
+                        {
+                            "name": "solace.username",
+                            "type": "string",
+                            "required": true,
+                            "defaultValue": "",
+                            "description": "Solace username (for BASIC authentication)."
+                        },
+                        {
+                            "name": "solace.password",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Solace password (for BASIC authentication)."
+                        },
+                        {
+                            "name": "solace.clientName",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Optional unique client name for this connection. The broker generates one if omitted."
+                        },
+                        {
+                            "name": "apiProvidedUsername",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Username to send in the SMF login frame when authenticationScheme is CLIENT_CERTIFICATE. Ignored by the broker when it derives identity from the certificate common name."
+                        },
+                        {
+                            "name": "solace.authenticationScheme",
+                            "type": "combo",
+                            "required": false,
+                            "defaultValue": "BASIC",
+                            "description": "Authentication scheme: **BASIC**, **CLIENT_CERTIFICATE**, or **OAUTH2**."
+                        },
+                        {
+                            "name": "solace.oauth2AccessToken",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "OAuth 2.0 access token (used when authenticationScheme is OAUTH2)."
+                        },
+                        {
+                            "name": "solace.oauth2IssuerIdentifier",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Optional OAuth 2.0 issuer identifier."
+                        },
+                        {
+                            "name": "solace.oidcIdToken",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "OIDC ID token (alternative to the OAuth 2.0 access token)."
+                        },
+                        {
+                            "name": "solace.destinationType",
+                            "type": "combo",
+                            "required": true,
+                            "defaultValue": "QUEUE",
+                            "description": "Destination type: **QUEUE** or **TOPIC**."
+                        },
+                        {
+                            "name": "solace.destinationName",
+                            "type": "string",
+                            "required": true,
+                            "defaultValue": "",
+                            "description": "Solace queue or topic name. For a DIRECT topic subscription, a comma-separated list of topics is accepted."
+                        },
+                        {
+                            "name": "solace.subscriptionType",
+                            "type": "combo",
+                            "required": false,
+                            "defaultValue": "DIRECT",
+                            "description": "Subscription type for topics: **DIRECT** or **DURABLE**."
+                        },
+                        {
+                            "name": "solace.dteName",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Durable Topic Endpoint name. Required when subscriptionType is DURABLE."
+                        },
+                        {
+                            "name": "solace.selector",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "SQL-92 selector expression applied server-side on queue/DTE flows to filter messages."
+                        },
+                        {
+                            "name": "solace.autoAck",
+                            "type": "checkbox",
+                            "required": false,
+                            "defaultValue": "True",
+                            "description": "If enabled, messages are acknowledged automatically. Disable for client acknowledgement, where the message is settled based on the mediation outcome (this forces sequential processing)."
+                        },
+                        {
+                            "name": "solace.subAckWindowSize",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "255",
+                            "description": "Transport acknowledgement window size for guaranteed messaging."
+                        },
+                        {
+                            "name": "solace.failureOutcome",
+                            "type": "combo",
+                            "required": false,
+                            "defaultValue": "NONE",
+                            "description": "Action on injection failure: **NONE** (no ack; broker redelivery limit applies), **FAILED** (settle as FAILED → redelivered), or **REJECTED** (settle as REJECTED → routed to DMQ)."
+                        },
+                        {
+                            "name": "solace.contentType",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Content-Type for inbound messages. Leave empty to auto-detect from the message's HTTP Content-Type header or payload. When set, it overrides that detection."
+                        },
+                        {
+                            "name": "solace.binaryPayloadAsBase64",
+                            "type": "checkbox",
+                            "required": false,
+                            "defaultValue": "False",
+                            "description": "If enabled, binary (BytesMessage) payloads are Base64-encoded rather than UTF-8 decoded."
+                        },
+                        {
+                            "name": "solace.connectionTimeout",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "30000",
+                            "description": "Connection establishment timeout in milliseconds."
+                        },
+                        {
+                            "name": "solace.connectRetries",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "3",
+                            "description": "Number of times to retry connecting before failing."
+                        },
+                        {
+                            "name": "solace.connectRetriesPerHost",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "3",
+                            "description": "Number of connection attempts per host before moving to the next host."
+                        },
+                        {
+                            "name": "solace.reconnectRetries",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "3",
+                            "description": "Number of times to retry reconnecting after the connection is lost."
+                        },
+                        {
+                            "name": "solace.reconnectRetryWait",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "3000",
+                            "description": "Wait time (in milliseconds) between reconnect attempts."
+                        },
+                        {
+                            "name": "solace.sslTrustStorePath",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "File path to the truststore for TLS connections. If omitted, the JVM default truststore is used."
+                        },
+                        {
+                            "name": "solace.sslTrustStorePassword",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Password for the truststore."
+                        },
+                        {
+                            "name": "solace.sslTrustStoreFormat",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Truststore format (e.g., JKS)."
+                        },
+                        {
+                            "name": "solace.sslKeyStorePath",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "File path to the keystore for mutual TLS (client certificate authentication)."
+                        },
+                        {
+                            "name": "solace.sslKeyStorePassword",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Password for the keystore."
+                        },
+                        {
+                            "name": "solace.sslKeyStoreFormat",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Keystore format (e.g., JKS)."
+                        },
+                        {
+                            "name": "solace.sslKeyPassword",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Password for the private key within the keystore."
+                        },
+                        {
+                            "name": "solace.sslValidateCertificate",
+                            "type": "checkbox",
+                            "required": false,
+                            "defaultValue": "True",
+                            "description": "If enabled, the server certificate is validated on TLS connections. **Disabling is not recommended for production.**"
+                        },
+                        {
+                            "name": "solace.sslValidateCertificateDate",
+                            "type": "checkbox",
+                            "required": false,
+                            "defaultValue": "True",
+                            "description": "If enabled, the server certificate's validity dates are checked on TLS connections."
+                        },
+                        {
+                            "name": "solace.generateReceiveTimestamps",
+                            "type": "checkbox",
+                            "required": false,
+                            "defaultValue": "False",
+                            "description": "If enabled, JCSMP stamps a receive timestamp on incoming messages."
+                        },
+                        {
+                            "name": "solace.provisionDestination",
+                            "type": "checkbox",
+                            "required": false,
+                            "defaultValue": "False",
+                            "description": "If enabled, the inbound endpoint provisions the queue or Durable Topic Endpoint if it does not already exist."
+                        },
+                        {
+                            "name": "solace.queueAccessType",
+                            "type": "combo",
+                            "required": false,
+                            "defaultValue": "EXCLUSIVE",
+                            "description": "Access type for a provisioned queue: **EXCLUSIVE** or **NON_EXCLUSIVE**."
+                        },
+                        {
+                            "name": "solace.queuePermission",
+                            "type": "combo",
+                            "required": false,
+                            "defaultValue": "",
+                            "description": "Permission for a provisioned queue: **CONSUME**, **DELETE**, **MODIFY_TOPIC**, or **READ_ONLY**."
+                        },
+                        {
+                            "name": "solace.queueQuotaMB",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "0",
+                            "description": "Quota (in MB) for a provisioned queue. 0 leaves the broker default."
+                        },
+                        {
+                            "name": "solace.queueMaxMsgSize",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "0",
+                            "description": "Maximum message size (in bytes) for a provisioned queue. 0 leaves the broker default."
+                        },
+                        {
+                            "name": "solace.queueRespectTTL",
+                            "type": "checkbox",
+                            "required": false,
+                            "defaultValue": "False",
+                            "description": "If enabled, a provisioned queue respects the message time-to-live (TTL)."
+                        },
+                        {
+                            "name": "solace.queueMaxMsgRedelivery",
+                            "type": "string",
+                            "required": false,
+                            "defaultValue": "0",
+                            "description": "Maximum redelivery attempts for a provisioned queue before dead-lettering. 0 leaves the broker default."
+                        }
+                    ],
+                    "isHidden": false
+                }
+            ],
+            "connections": []
+        }
+    ]
+}
