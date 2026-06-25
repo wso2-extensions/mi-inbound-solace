@@ -23,13 +23,13 @@
 
     <groupId>org.wso2.integration.inbound</groupId>
     <artifactId>mi-inbound-solace</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-SNAPSHOT</version>
     <name>WSO2 Carbon - Solace Inbound Endpoint</name>
     <description>Inbound endpoint for consuming messages from Solace Event Broker</description>
 
     <scm>
         <connection>scm:git:https://github.com/wso2-extensions/mi-inbound-solace.git</connection>
-        <url>https://github.com/wso2-extensions/mi-inbound-solace.git</url>
+        <url>https://github.com/wso2-extensions/mi-inbound-solace</url>
         <developerConnection>scm:git:https://github.com/wso2-extensions/mi-inbound-solace.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
@@ -138,12 +138,7 @@
             <url>https://maven.wso2.org/nexus/content/repositories/releases/</url>
         </repository>
     </distributionManagement>
-    <scm>
-        <connection>scm:git:https://github.com/wso2-extensions/mi-inbound-solace.git</connection>
-        <developerConnection>scm:git:https://github.com/wso2-extensions/mi-inbound-solace.git</developerConnection>
-        <url>https://github.com/wso2-extensions/mi-inbound-solace</url>
-        <tag>HEAD</tag>
-    </scm>
+  
     <build>
         <plugins>
             <plugin>
