@@ -21,13 +21,6 @@
             "products": [
                 "MI 4.6.0"
             ],
-            "connections": []
-        },
-        {
-            "tagName": "v1.0.0",
-            "products": [
-                "MI 4.6.0"
-            ],
             "operations": [
                 {
                     "name": "init",
