@@ -21,6 +21,13 @@
             "products": [
                 "MI 4.6.0"
             ],
+            "connections": []
+        },
+        {
+            "tagName": "v1.0.0",
+            "products": [
+                "MI 4.6.0"
+            ],
             "operations": [
                 {
                     "name": "init",
@@ -206,7 +213,7 @@
                             "type": "combo",
                             "required": false,
                             "defaultValue": "NONE",
-                            "description": "Action on injection failure: **NONE** (no ack; broker redelivery limit applies), **FAILED** (settle as FAILED → redelivered), or **REJECTED** (settle as REJECTED → routed to DMQ)."
+                            "description": "Action on injection failure: **NONE** (no ack; broker redelivery limit applies), **FAILED** (settle as FAILED \u2192 redelivered), or **REJECTED** (settle as REJECTED \u2192 routed to DMQ)."
                         },
                         {
                             "name": "solace.contentType",
