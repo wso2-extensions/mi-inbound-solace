@@ -286,7 +286,7 @@ public class SolaceEventListener extends GenericEventBasedConsumer implements XM
 
             injectHandler = new SolaceInjectHandler(
                     injectingSeq, onErrorSeq, synapseEnvironment, sequential,
-                    contentType, binaryPayloadAsBase64);
+                    contentType, binaryPayloadAsBase64, name);
 
             initializeConsumer();
 
