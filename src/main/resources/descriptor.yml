@@ -5,6 +5,9 @@ dependencies:
   - groupId: "${custom.inbound.groupId}"
     artifactId: "${custom.inbound.artifactId}"
     version: "${custom.inbound.version}"
+  - groupId: "com.solace"
+    artifactId: "solace-opentelemetry-jcsmp-integration"
+    version: "1.2.0"
 
 repositories:
   - id: "wso2-nexus"

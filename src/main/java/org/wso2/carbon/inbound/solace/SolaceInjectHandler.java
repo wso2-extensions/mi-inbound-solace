@@ -17,6 +17,7 @@
  */
 package org.wso2.carbon.inbound.solace;
 
+import com.solace.messaging.trace.propagation.SolaceJCSMPTextMapGetter;
 import com.solacesystems.jcsmp.BytesXMLMessage;
 import com.solacesystems.jcsmp.DeliveryMode;
 import com.solacesystems.jcsmp.Destination;
@@ -27,6 +28,9 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.Mediator;
+import org.apache.synapse.SynapseConstants;
+import org.apache.synapse.aspects.flow.statistics.collectors.RuntimeStatisticCollector;
+import org.apache.synapse.aspects.flow.statistics.tracing.opentelemetry.management.handling.span.SpanHandler;
 import org.apache.synapse.core.SynapseEnvironment;
 import org.apache.synapse.mediators.MediatorFaultHandler;
 import org.apache.synapse.mediators.base.SequenceMediator;
@@ -66,6 +70,12 @@ public class SolaceInjectHandler {
     private final boolean sequential;
     private final String contentType;
     private final boolean binaryPayloadAsBase64;
+    private final String inboundEndpointName;
+
+    /**
+     * Reads W3C trace context out of a JCSMP message.
+     */
+    private static final SolaceJCSMPTextMapGetter TRACE_CONTEXT_GETTER = new SolaceJCSMPTextMapGetter();
 
     // Delivery count is a per-message capability that may be unsupported on the endpoint. Log the
     // gap once (not per message) — the broker capability is constant for this handler's lifetime.
@@ -73,13 +83,15 @@ public class SolaceInjectHandler {
 
     public SolaceInjectHandler(String injectingSequence, String onErrorSequence,
                                SynapseEnvironment synapseEnvironment, boolean sequential,
-                               String contentType, boolean binaryPayloadAsBase64) {
+                               String contentType, boolean binaryPayloadAsBase64,
+                               String inboundEndpointName) {
         this.injectingSequence = injectingSequence;
         this.onErrorSequence = onErrorSequence;
         this.synapseEnvironment = synapseEnvironment;
         this.sequential = sequential;
         this.contentType = contentType;
         this.binaryPayloadAsBase64 = binaryPayloadAsBase64;
+        this.inboundEndpointName = inboundEndpointName;
     }
 
     public InjectionOutcome injectMessage(BytesXMLMessage message) {
@@ -97,6 +109,18 @@ public class SolaceInjectHandler {
             synCtx = SolaceUtils.createMessageContext(
                     synapseEnvironment, payload, message, contentType, binaryPayloadAsBase64);
 
+            // Names the mediation flow's entry span after the inbound endpoint.
+            synCtx.setProperty(SynapseConstants.INBOUND_ENDPOINT_NAME, inboundEndpointName);
+
+            if (RuntimeStatisticCollector.isOpenTelemetryEnabled()) {
+                try {
+                    SpanHandler.extractTraceContextAndInjectToMessageContext(message, synCtx, TRACE_CONTEXT_GETTER);
+                } catch (NoSuchMethodError e) {
+                    log.warn("You are running solace inbound connector on old wso2mi version. " +
+                            "Distributed tracing will not working correctly in this version. " +
+                            "Please upgrade the wso2mi version");
+                }
+            }
             // Stash the raw JCSMP message so sendReply / acknowledgeMessage / nackMessage
             // can access the original handle from the mediation flow.
             synCtx.setProperty(SolaceInboundConstants.SOLACE_INBOUND_MESSAGE, message);
