@@ -16,6 +16,7 @@ The Solace inbound endpoint enables **WSO2 Integrator: MI** to consume messages 
 - [OAuth2 token file rotation](#oauth2-token-file-rotation)
 - [Health](#health)
 - [2.0.0 breaking changes](#200-breaking-changes)
+- [2.0.1 changes](#201-changes)
 - [Building from source](#building-from-source)
 - [Documentation and license](#documentation-and-license)
 
@@ -160,8 +161,8 @@ Parameter names map directly to inbound-endpoint `<parameter>` names. Required-n
 
 | Parameter | Required | Default | Description |
 |---|---|---|---|
-| `solace.contentType` | No | _(auto-detect)_ | Override content type (`application/json`, `application/xml`, `text/plain`). Empty = detect from header/payload. |
-| `solace.binaryPayloadAsBase64` | No | `false` | Base64-encode `BytesMessage` payloads instead of UTF-8 decoding (protects binary data). Auto-sets content type to `application/octet-stream`. |
+| `solace.contentType` | No | | The content type the body is read with. It wins over the type the message declares. Empty or blank uses the declared type, else the default of the message class: `text/plain` for a TextMessage, `application/octet-stream` for a BytesMessage, `application/xml` for an XMLContentMessage and `application/json` for a MapMessage or a StreamMessage. A value without a charset takes the charset the message declares, else UTF-8. The payload is never inspected to guess a type. |
+| `solace.binaryPayloadAsBase64` | No | `false` | `false`: the body is built by the builder registered for its content type. A text type is decoded with its charset, and a binary type gives the native binary element, so the sequence can send the bytes over HTTP or write them with the File connector. `true` is the legacy option: a BytesMessage body is base64 text with `application/octet-stream`, as in 2.0.0, and the sequence decodes it. |
 | `solace.selector` | No | | Server-side SQL-92 selector on headers/user properties. Applies to `QUEUE` and DTE destinations. Example: `priority >= 5 AND tenant = 'acme'`. |
 
 ### Guaranteed messaging (QUEUE / durable TOPIC)
@@ -248,7 +249,7 @@ Each injected message carries the following synapse message-context properties (
 
 **QoS / routing:** `solace.cos`, `solace.dmqEligible`, `solace.elidingEligible`
 
-**User-defined:** each property in the Solace SDTMap is surfaced as `solace.userProp.<key>` (e.g. a property `region` becomes `solace.userProp.region`).
+**User-defined:** each property in the Solace SDTMap is surfaced as `solace.userProp.<key>` (e.g. a property `region` becomes `solace.userProp.region`). A byte value is base64 text.
 
 2.0.0 adds or changes these properties on every message.
 
@@ -266,7 +267,8 @@ Each injected message carries the following synapse message-context properties (
 - With `solace.autoAck=true` (default), messages are acknowledged when the injection returns, before any asynchronous work of the sequence completes, at most once. The sequence cannot influence settlement.
 - With `solace.autoAck=false`, settle the message from the sequence via the [Solace connector](https://github.com/wso2-extensions/mi-connector-solace)'s `acknowledgeMessage` / `nackMessage` operations. The listener pins `sequential=true` in this mode so settlement is always decided from a completed mediation, avoiding an ack-then-nack double-settle.
 - `solace.failureOutcome` is the fallback used only when the sequence does not settle the message itself (e.g. an unhandled exception).
-- Empty or unparseable payloads are settled as `REJECTED` (routed to the DMQ) so the message is preserved for inspection instead of being redelivered forever.
+- A message with an empty body builds no mediation context and never reaches the sequence, so a header only message is not processed. The endpoint logs `Received empty Solace message, no mediation context built` and the settlement table decides as for a rejected injection: acknowledged with `solace.autoAck=true`, settled `REJECTED` with `solace.autoAck=false`, and a DMQ eligible message goes to the DMQ of the queue, and rolled back in transacted mode.
+- A body that cannot be built takes the same path with the line `could not be converted into a message context; rejecting`. That is text that does not decode with its charset, an XML document with a malformed root, or JSON the builder rejects at its start. A JSON or XML document that is damaged after its start is injected and fails where the sequence first reads the body, and the settlement table decides as for any failed sequence. We do not promise that every read of such a body throws. A sequence that needs a validated payload parses and validates it explicitly. A sequence that acknowledges without reading the body has not validated it.
 
 ## Broker side HA with coordination=false
 
@@ -309,6 +311,14 @@ On a WSO2 Integrator: MI level whose management API reads consumer health, the i
 - `publishMessage`, `sendRequest` and `sendReply` wait for the broker ack by default on guaranteed delivery, under the `ackTimeout` deadline.
 - `solace.clientName` is a prefix unless `clientNameStrict=true`. The client name is never used for authorization on the broker, so this changes only what operators see in monitoring, the SEMP disconnect action, and any `#P2P` addressing by client name. People who depend on the exact string set `clientNameStrict=true`.
 - Replies and polls no longer use pooled sessions. The connector opens up to two extra sessions per logical connection, so the broker's per client username connection limit must allow pool size plus two.
+
+## 2.0.1 changes
+
+- The content type of a message is `solace.contentType`, else the type the message declares, else the default of the message class. 1.x and 2.0.0 guessed JSON from `{` and `[` and XML from `<` at the start of an undeclared body. 2.0.1 does not. A producer declares the type, or the endpoint sets `solace.contentType`. No option restores the guess.
+- The body is built by the builder registered for its content type. A text body is decoded with its charset and a binary BytesMessage keeps its bytes. 2.0.0 decoded every BytesMessage as UTF-8.
+- Declared JSON or XML that the builder rejects is rejected with the build failure line. 1.x and 2.0.0 let it fall back to text. A JSON or XML document that is damaged after its start fails where the sequence first reads it.
+- A byte value in the user properties is base64 text in `solace.userProp.<key>`.
+- The empty message WARN reads `Received empty Solace message, no mediation context built` in every mode.
 
 ## Building from source
 

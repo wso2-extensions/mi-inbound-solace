@@ -113,6 +113,16 @@ final class DeliveryProcessor {
             }
             Decision decision;
             Decision decisionOverride = null;
+            // We read the JCSMP message once, before the first attempt. A stream or map message consumes its
+            // read cursor on that conversion, so every attempt builds its context from this snapshot and the
+            // message body is never read again. A conversion failure is the first attempt's build failure.
+            SolaceUtils.Payload payload = null;
+            Exception conversionFailure = null;
+            try {
+                payload = listener.injectHandler.readPayload(message);
+            } catch (Exception e) {
+                conversionFailure = e;
+            }
             while (true) {
                 CompletableFuture<String> handle = new CompletableFuture<>();
                 synchronized (generation.admission) {
@@ -127,11 +137,13 @@ final class DeliveryProcessor {
                 final long attemptStart = System.nanoTime();
                 try {
                     MessageContext messageContext = null;
-                    Exception buildFailure = null;
-                    try {
-                        messageContext = listener.injectHandler.buildContext(message, attempt);
-                    } catch (Exception e) {
-                        buildFailure = e;
+                    Exception buildFailure = conversionFailure;
+                    if (buildFailure == null) {
+                        try {
+                            messageContext = listener.injectHandler.buildContext(payload, message, attempt);
+                        } catch (Exception e) {
+                            buildFailure = e;
+                        }
                     }
                     injectionRejected = (messageContext == null);
                     if (buildFailure != null) {

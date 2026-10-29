@@ -18,6 +18,7 @@
 package org.wso2.carbon.inbound.solace;
 
 import com.solace.messaging.trace.propagation.SolaceJCSMPTextMapGetter;
+import com.solacesystems.common.util.ByteArray;
 import com.solacesystems.jcsmp.BytesXMLMessage;
 import com.solacesystems.jcsmp.DeliveryMode;
 import com.solacesystems.jcsmp.Destination;
@@ -36,7 +37,11 @@ import org.apache.synapse.core.SynapseEnvironment;
 import org.apache.synapse.mediators.MediatorFaultHandler;
 import org.apache.synapse.mediators.base.SequenceMediator;
 
+import java.io.IOException;
+import java.util.Base64;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -85,17 +90,27 @@ public class SolaceInjectHandler {
     }
 
     /**
-     * Worker thread. Returns null for an empty payload (logged WARN), throws for any other build failure.
+     * Worker thread. Reads the JCSMP message once per delivery, the body and the user properties, and returns
+     * the snapshot every attempt builds its context from. Throws when a text body does not decode with its
+     * charset, or when a legacy JSON builder would get a body that is not one complete JSON value.
      */
-    public MessageContext buildContext(BytesXMLMessage message, int attempt) throws Exception {
-        String payload = SolaceUtils.extractPayload(message, binaryPayloadAsBase64);
-        if (payload == null || payload.isEmpty()) {
-            log.warn("Received empty Solace message, rejecting (routed to DMQ).");
+    public SolaceUtils.Payload readPayload(BytesXMLMessage message) throws IOException {
+        return SolaceUtils.readPayload(synapseEnvironment, message, contentType, binaryPayloadAsBase64,
+                readUserProperties(message));
+    }
+
+    /**
+     * Worker thread. Builds a fresh context from the snapshot of the delivery, never from the message body
+     * again. Returns null for an empty payload (logged WARN), throws for any other build failure.
+     */
+    public MessageContext buildContext(SolaceUtils.Payload payload, BytesXMLMessage message, int attempt)
+            throws Exception {
+        if (payload.isEmpty()) {
+            log.warn("Received empty Solace message, no mediation context built");
             return null;
         }
 
-        MessageContext synCtx = SolaceUtils.createMessageContext(
-                synapseEnvironment, payload, message, contentType, binaryPayloadAsBase64);
+        MessageContext synCtx = SolaceUtils.createMessageContext(synapseEnvironment, payload);
 
         // Names the mediation flow's entry span after the inbound endpoint.
         synCtx.setProperty(SynapseConstants.INBOUND_ENDPOINT_NAME, inboundEndpointName);
@@ -115,6 +130,7 @@ public class SolaceInjectHandler {
         synCtx.setProperty(SolaceInboundConstants.SOLACE_INBOUND_MESSAGE, message);
 
         setMessageProperties(synCtx, message);
+        setUserProperties(synCtx, payload);
         synCtx.setProperty(SolaceInboundConstants.SOLACE_DELIVERY_ATTEMPT, String.valueOf(attempt));
         synCtx.setProperty(SolaceInboundConstants.SOLACE_REDELIVERED,
                 String.valueOf(message.getRedelivered() || attempt > 1));
@@ -267,23 +283,33 @@ public class SolaceInjectHandler {
 
         synCtx.setProperty(SolaceInboundConstants.SOLACE_ELIDING_ELIGIBLE,
                 String.valueOf(message.isElidingEligible()));
-
-        // User-defined properties (SDTMap)
-        setUserProperties(synCtx, message);
     }
 
-    private void setUserProperties(org.apache.synapse.MessageContext synCtx,
-                                   BytesXMLMessage message) {
+    /**
+     * User defined properties (SDTMap), set from the snapshot of the delivery.
+     */
+    private static void setUserProperties(MessageContext synCtx, SolaceUtils.Payload payload) {
+        for (Map.Entry<String, String> property : payload.userProperties.entrySet()) {
+            synCtx.setProperty(SolaceInboundConstants.SOLACE_USER_PROP_PREFIX + property.getKey(),
+                    property.getValue());
+        }
+    }
+
+    /**
+     * Reads the user properties once per delivery. A nested map or stream is read here and never again.
+     */
+    private static Map<String, String> readUserProperties(BytesXMLMessage message) {
+        Map<String, String> properties = new LinkedHashMap<>();
         SDTMap userProps;
         try {
             userProps = message.getProperties();
         } catch (Exception e) {
             log.warn("Could not retrieve Solace user properties.", e);
-            return;
+            return properties;
         }
 
         if (userProps == null) {
-            return;
+            return properties;
         }
 
         Iterator<String> keys = userProps.keySet().iterator();
@@ -292,13 +318,22 @@ public class SolaceInjectHandler {
             try {
                 Object value = userProps.get(key);
                 if (value != null) {
-                    synCtx.setProperty(
-                            SolaceInboundConstants.SOLACE_USER_PROP_PREFIX + key,
-                            String.valueOf(value));
+                    properties.put(key, userPropertyText(value));
                 }
             } catch (SDTException e) {
                 log.warn("Could not read Solace user property '" + key + "', skipping.", e);
             }
         }
+        return properties;
+    }
+
+    /**
+     * A byte value, a JCSMP ByteArray, becomes base64 text. Every other type keeps its 1.x string form.
+     */
+    private static String userPropertyText(Object value) {
+        if (value instanceof ByteArray) {
+            return Base64.getEncoder().encodeToString(((ByteArray) value).asBytes());
+        }
+        return String.valueOf(value);
     }
 }

@@ -83,7 +83,7 @@ public final class SolaceInboundConstants {
     public static final String FAILURE_OUTCOME_NONE = "NONE";
     public static final String FAILURE_OUTCOME_FAILED = "FAILED";
     public static final String FAILURE_OUTCOME_REJECTED = "REJECTED";
-    /** When true, BytesMessage payloads are base64-encoded rather than UTF-8 decoded. */
+    /** When true, a BytesMessage body becomes base64 text with application/octet-stream, the 2.0.0 behaviour. */
     public static final String BINARY_PAYLOAD_AS_BASE64 = "solace.binaryPayloadAsBase64";
     /** SQL-92 selector expression applied server-side on queue/DTE flows. */
     public static final String SELECTOR = "solace.selector";
@@ -123,11 +123,11 @@ public final class SolaceInboundConstants {
     // Content type values
     public static final String CONTENT_TYPE = "solace.contentType";
     public static final String CONTENT_TYPE_JSON = "application/json";
+    public static final String CONTENT_TYPE_JSON_BADGERFISH = "application/json/badgerfish";
     public static final String CONTENT_TYPE_XML = "application/xml";
     public static final String CONTENT_TYPE_TEXT_XML = "text/xml";
     public static final String CONTENT_TYPE_TEXT = "text/plain";
     public static final String CONTENT_TYPE_OCTET = "application/octet-stream";
-    public static final String DEFAULT_CONTENT_TYPE = CONTENT_TYPE_JSON;
 
     // Synapse MessageContext properties - Set by SolaceInjectHandler on every inbound message context.
     // --- Envelope (broker-set) ---

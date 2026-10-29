@@ -400,7 +400,7 @@
               "comboValues": ["", "application/json", "application/xml", "text/plain"],
               "defaultValue": "",
               "required": false,
-              "helpTip": "Override content type detection for the synapse message. Leave empty to auto-detect from the message header or payload. For binary payloads, enable 'Binary Payload as Base64' instead — content type is set to application/octet-stream automatically when that switch is on."
+              "helpTip": "The content type the body is read with. It wins over the type the message declares. Empty uses the declared type, else the default of the message class. The payload is never inspected. A value without a charset takes the charset the message declares, else UTF-8."
             }
           },
           {
@@ -411,7 +411,7 @@
               "inputType": "checkbox",
               "defaultValue": false,
               "required": false,
-              "helpTip": "When enabled, BytesMessage raw bytes are base64-encoded instead of UTF-8 decoded (prevents corruption of binary data like protobuf, Avro, images). This also auto-sets the content type to application/octet-stream — do not also override contentType in that case."
+              "helpTip": "Legacy option. When enabled a BytesMessage body is base64 text with application/octet-stream, as in 2.0.0, and the sequence decodes it. When disabled a text type is decoded with its charset and a binary type gives the native binary element."
             }
           },
           {

@@ -284,7 +284,9 @@ final class TxWorker implements Runnable {
             MessageContext messageContext = null;
             boolean rejected;
             try {
-                messageContext = listener.injectHandler.buildContext(message, attempt);
+                // One attempt per delivery, so the message is read once here and the context built from it.
+                SolaceUtils.Payload payload = listener.injectHandler.readPayload(message);
+                messageContext = listener.injectHandler.buildContext(payload, message, attempt);
             } catch (Exception e) {
                 log.error("SolaceListener [" + name + "] message " + message.getMessageId()
                         + " could not be converted into a message context; rejecting", e);

@@ -46,6 +46,7 @@
         <org.wso2.json.version>3.0.0.wso2v8</org.wso2.json.version>
         <solace.otel.version>1.2.0</solace.otel.version>
         <config.mapper.version>1.1.0</config.mapper.version>
+        <junit.version>4.13.2</junit.version>
     </properties>
 
     <repositories>
@@ -99,6 +100,13 @@
             <scope>provided</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.axis2.wso2</groupId>
+            <artifactId>axis2-json</artifactId>
+            <version>${axis2.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Apache Axiom -->
         <dependency>
             <groupId>org.apache.ws.commons.axiom.wso2</groupId>
@@ -141,6 +149,12 @@
             <artifactId>config-mapper</artifactId>
             <version>${config.mapper.version}</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
